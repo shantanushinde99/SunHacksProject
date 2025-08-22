@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateFlashcards } from '../lib/gemini';
+import {
+  createSession,
+  updateSessionProgress,
+  markFlashcardStudied,
+  recordQuestionAnswer
+} from '../lib/sessionService';
 import './FastLearningSession.css';
 
 const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
@@ -10,7 +16,11 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [studiedCards, setStudiedCards] = useState(new Set());
   const [loading, setLoading] = useState(false);
-  
+
+  // Session management
+  const [sessionId, setSessionId] = useState(null);
+  const [sessionCreated, setSessionCreated] = useState(false);
+
   // Evaluation state
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -57,32 +67,63 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
     }
   };
 
-  // Load flashcards when component mounts
-  const loadFlashcards = useCallback(async () => {
-    if (!topic.trim()) return;
-    
+  // Create session and load flashcards when component mounts
+  const initializeSession = useCallback(async () => {
+    if (!topic.trim() || sessionCreated) return;
+
     setLoading(true);
     try {
+      // Generate flashcards and questions
       const cards = await generateFastFlashcards(topic);
+      const evalQuestions = await generateFastMCQQuestions(topic);
+
       setFlashcards(cards);
+      setQuestions(evalQuestions);
+
+      // Create session in database
+      const sessionResult = await createSession({
+        sessionType: 'fast',
+        topic: topic,
+        flashcards: cards,
+        mcqQuestions: evalQuestions
+      });
+
+      if (sessionResult.success) {
+        setSessionId(sessionResult.session.id);
+        setSessionCreated(true);
+        console.log('Session created successfully:', sessionResult.session.id);
+      } else {
+        console.error('Failed to create session:', sessionResult.error);
+      }
     } catch (error) {
-      console.error('Error loading flashcards:', error);
+      console.error('Error initializing session:', error);
     } finally {
       setLoading(false);
     }
-  }, [topic]);
+  }, [topic, sessionCreated]);
 
   useEffect(() => {
     if (initialTopic && initialTopic.trim()) {
-      loadFlashcards();
+      initializeSession();
     }
-  }, [initialTopic, loadFlashcards]);
+  }, [initialTopic, initializeSession]);
 
   // Flashcard navigation
-  const handleCardClick = () => {
+  const handleCardClick = async () => {
     if (!isFlipped) {
       setIsFlipped(true);
-      setStudiedCards(prev => new Set([...prev, currentCardIndex]));
+      const newStudiedCards = new Set([...studiedCards, currentCardIndex]);
+      setStudiedCards(newStudiedCards);
+
+      // Mark flashcard as studied in database
+      if (sessionId) {
+        await markFlashcardStudied(sessionId, currentCardIndex);
+
+        // Update session progress
+        await updateSessionProgress(sessionId, {
+          studiedFlashcards: newStudiedCards.size
+        });
+      }
     }
   };
 
@@ -102,19 +143,10 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
 
   // Start evaluation phase
   const handleStartEvaluation = async () => {
-    setLoading(true);
-    try {
-      const evalQuestions = await generateFastMCQQuestions(topic);
-      setQuestions(evalQuestions);
-      setCurrentPhase('evaluation');
-      setCurrentQuestionIndex(0);
-      setAnswers({});
-      setSelectedAnswer('');
-    } catch (error) {
-      console.error('Error starting evaluation:', error);
-    } finally {
-      setLoading(false);
-    }
+    setCurrentPhase('evaluation');
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setSelectedAnswer('');
   };
 
   // Handle answer selection
@@ -123,21 +155,28 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
   };
 
   // Handle next question
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     // Save answer
     const questionKey = currentQuestionIndex;
     const currentQuestion = questions[currentQuestionIndex];
     const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
-    
+
+    const answerData = {
+      question: currentQuestion.question,
+      selectedAnswer,
+      correctAnswer: currentQuestion.correctAnswer,
+      isCorrect
+    };
+
     setAnswers(prev => ({
       ...prev,
-      [questionKey]: {
-        question: currentQuestion.question,
-        selectedAnswer,
-        correctAnswer: currentQuestion.correctAnswer,
-        isCorrect
-      }
+      [questionKey]: answerData
     }));
+
+    // Record answer in database
+    if (sessionId) {
+      await recordQuestionAnswer(sessionId, currentQuestionIndex, selectedAnswer, isCorrect);
+    }
 
     // Move to next question or complete evaluation
     if (currentQuestionIndex < questions.length - 1) {
@@ -149,7 +188,7 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
   };
 
   // Complete evaluation
-  const completeEvaluation = () => {
+  const completeEvaluation = async () => {
     const finalAnswers = {
       ...answers,
       [currentQuestionIndex]: {
@@ -164,12 +203,24 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
     const totalQuestions = questions.length;
     const percentage = Math.round((correctCount / totalQuestions) * 100);
 
-    setEvaluationResults({
+    const results = {
       correct: correctCount,
       total: totalQuestions,
       percentage,
       passed: percentage >= 60 // 60% passing threshold
-    });
+    };
+
+    setEvaluationResults(results);
+
+    // Update session as completed in database
+    if (sessionId) {
+      await updateSessionProgress(sessionId, {
+        status: 'completed',
+        correctAnswers: correctCount,
+        finalScore: percentage,
+        evaluationResults: results
+      });
+    }
 
     setCurrentPhase('completed');
   };

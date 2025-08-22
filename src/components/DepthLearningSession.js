@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { generatePrerequisites } from '../lib/gemini';
+import { createSession, updateSessionProgress } from '../lib/sessionService';
 import Evaluation from './Evaluation';
 import LearningComponent from './LearningComponent';
 import './DepthLearningSession.css';
@@ -14,15 +15,36 @@ const DepthLearningSession = ({ topic: initialTopic = '', onBack }) => {
   // const [evaluationResults, setEvaluationResults] = useState(null); // Not used currently
   const [finalEvaluationResults, setFinalEvaluationResults] = useState(null);
 
-  // Auto-submit if we have an initial topic
+  // Session management
+  const [sessionId, setSessionId] = useState(null);
+  const [sessionCreated, setSessionCreated] = useState(false);
+
+  // Auto-submit if we have an initial topic and create session
   React.useEffect(() => {
     const autoSubmit = async () => {
-      if (initialTopic && initialTopic.trim()) {
+      if (initialTopic && initialTopic.trim() && !sessionCreated) {
         setLoading(true);
         try {
           const prerequisites = await generatePrerequisites(initialTopic);
           setPrerequisites(prerequisites);
           setSelectedPrerequisites(new Set());
+
+          // Create session in database
+          const sessionResult = await createSession({
+            sessionType: 'depth',
+            topic: initialTopic,
+            prerequisites: prerequisites,
+            flashcards: [],
+            mcqQuestions: []
+          });
+
+          if (sessionResult.success) {
+            setSessionId(sessionResult.session.id);
+            setSessionCreated(true);
+            console.log('Depth session created successfully:', sessionResult.session.id);
+          } else {
+            console.error('Failed to create depth session:', sessionResult.error);
+          }
         } catch (error) {
           console.error('Error fetching prerequisites:', error);
         } finally {
@@ -30,9 +52,9 @@ const DepthLearningSession = ({ topic: initialTopic = '', onBack }) => {
         }
       }
     };
-    
+
     autoSubmit();
-  }, [initialTopic]);
+  }, [initialTopic, sessionCreated]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -97,7 +119,7 @@ const DepthLearningSession = ({ topic: initialTopic = '', onBack }) => {
     }
   };
 
-  const handleFinalEvaluationComplete = (failedTopics, results) => {
+  const handleFinalEvaluationComplete = async (failedTopics, results) => {
     setFinalEvaluationResults(results);
     if (failedTopics.length > 0) {
       // Some topics still failed, need to learn them again
@@ -105,6 +127,20 @@ const DepthLearningSession = ({ topic: initialTopic = '', onBack }) => {
       setCurrentPhase('learning');
     } else {
       // All topics passed, mark as completed
+      // Update session as completed in database
+      if (sessionId) {
+        const totalQuestions = Object.values(results).reduce((sum, result) => sum + result.total, 0);
+        const correctAnswers = Object.values(results).reduce((sum, result) => sum + result.correct, 0);
+        const finalScore = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+        await updateSessionProgress(sessionId, {
+          status: 'completed',
+          correctAnswers: correctAnswers,
+          finalScore: finalScore,
+          evaluationResults: results,
+          prerequisiteResults: results
+        });
+      }
       setCurrentPhase('completed');
     }
   };

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getRecentSessions } from '../lib/sessionService';
 import TopicInput from './TopicInput';
 import FileUpload from './FileUpload';
 import SessionTypeSelector from './SessionTypeSelector';
@@ -10,6 +11,8 @@ const Dashboard = ({ onStartLearning }) => {
   const [inputMethod, setInputMethod] = useState('topic'); // 'topic' or 'files'
   const [sessionType, setSessionType] = useState('fast'); // 'fast' or 'depth'
   const [currentStep, setCurrentStep] = useState('input-method'); // 'input-method', 'session-type', 'ready'
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   // Handle topic submission
   const handleTopicSubmit = (topic) => {
@@ -54,6 +57,30 @@ const Dashboard = ({ onStartLearning }) => {
     window.selectedTopic = null;
     window.selectedFiles = null;
   };
+
+  // Load recent sessions
+  const loadRecentSessions = async () => {
+    try {
+      setLoadingSessions(true);
+      const result = await getRecentSessions(3);
+      if (result.success) {
+        setRecentSessions(result.sessions);
+      } else {
+        console.error('Failed to load recent sessions:', result.error);
+      }
+    } catch (error) {
+      console.error('Error loading recent sessions:', error);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  // Load recent sessions when component mounts
+  useEffect(() => {
+    if (user) {
+      loadRecentSessions();
+    }
+  }, [user]);
 
   return (
     <div className="dashboard-container">
@@ -137,10 +164,53 @@ const Dashboard = ({ onStartLearning }) => {
         <div className="recent-sessions">
           <h3>Recent Learning Sessions</h3>
           <div className="sessions-grid">
-            <div className="session-card">
-              <h4>No sessions yet</h4>
-              <p>Start your first learning session above!</p>
-            </div>
+            {loadingSessions ? (
+              <div className="session-card">
+                <h4>Loading sessions...</h4>
+                <p>Please wait while we fetch your recent sessions.</p>
+              </div>
+            ) : recentSessions.length > 0 ? (
+              recentSessions.map((session) => (
+                <div key={session.id} className="session-card">
+                  <div className="session-header">
+                    <h4>{session.topic}</h4>
+                    <span className={`session-type ${session.session_type}`}>
+                      {session.session_type === 'fast' ? '⚡ Fast' : '🎯 Depth'}
+                    </span>
+                  </div>
+                  <div className="session-stats">
+                    <div className="stat">
+                      <span className="stat-label">Flashcards:</span>
+                      <span className="stat-value">
+                        {session.studied_flashcards}/{session.total_flashcards}
+                      </span>
+                    </div>
+                    {session.total_questions > 0 && (
+                      <div className="stat">
+                        <span className="stat-label">Score:</span>
+                        <span className="stat-value">
+                          {session.final_score ? `${session.final_score}%` : 'In Progress'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="session-meta">
+                    <span className={`session-status ${session.status}`}>
+                      {session.status === 'completed' ? '✅ Completed' :
+                       session.status === 'in_progress' ? '🔄 In Progress' : '❌ Abandoned'}
+                    </span>
+                    <span className="session-date">
+                      {new Date(session.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="session-card">
+                <h4>No sessions yet</h4>
+                <p>Start your first learning session above!</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
