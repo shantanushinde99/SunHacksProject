@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import FileProcessor from './FileProcessor';
 import './FileUpload.css';
 
@@ -9,6 +9,7 @@ const FileUpload = ({ onFilesSubmit, disabled = false }) => {
   const [filesToProcess, setFilesToProcess] = useState([]);
   const [showFileProcessor, setShowFileProcessor] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Handle file uploads
   const handleFileUpload = (files) => {
@@ -39,6 +40,13 @@ const FileUpload = ({ onFilesSubmit, disabled = false }) => {
   const handleFileInputChange = (event) => {
     const files = Array.from(event.target.files);
     handleFileUpload(files);
+  };
+
+  // Handle click on drop zone to open file browser
+  const handleDropZoneClick = () => {
+    if (fileInputRef.current && !disabled) {
+      fileInputRef.current.click();
+    }
   };
 
   // Handle drag and drop
@@ -73,13 +81,35 @@ const FileUpload = ({ onFilesSubmit, disabled = false }) => {
   };
 
   // Handle file processing completion
-  const handleFileProcessingComplete = (results) => {
-    console.log('File processing completed:', results);
+  const handleFileProcessingComplete = async (processingResults) => {
+    console.log('File processing completed:', processingResults);
 
-    // Add successfully processed files to uploaded files
-    const processedFiles = results.results.filter(r => r.success);
+    // Extract successfully processed files
+    let processedFiles = [];
+    let combinedMarkdown = '';
+    
+    // Check if we have multiple files processed
+    if (processingResults.results && Array.isArray(processingResults.results)) {
+      // Multiple files
+      processedFiles = processingResults.results.filter(r => r.success);
+      combinedMarkdown = processingResults.combinedMarkdown || '';
+    } else if (processingResults.success) {
+      // Single file
+      processedFiles = [processingResults];
+      combinedMarkdown = processingResults.markdownContent || '';
+    }
+    
     if (processedFiles.length > 0) {
-      setUploadedFiles(prev => [...prev, ...processedFiles]);
+      // Store processed files with their markdown content
+      const filesWithContent = processedFiles.map(file => ({
+        ...file,
+        markdownContent: file.markdownContent || file.extractedText
+      }));
+      
+      setUploadedFiles(prev => [...prev, ...filesWithContent]);
+      
+      // Store combined markdown for later use
+      window.processedMarkdown = combinedMarkdown || processedFiles[0].markdownContent;
     }
 
     // Clear the files to process
@@ -95,14 +125,20 @@ const FileUpload = ({ onFilesSubmit, disabled = false }) => {
   };
 
   // Handle main submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const hasContent = uploadedFiles.length > 0 || attachedLinks.length > 0;
     
     if (hasContent && onFilesSubmit) {
-      onFilesSubmit({
+      // Prepare the submission data
+      const submissionData = {
         files: uploadedFiles,
-        links: attachedLinks
-      });
+        links: attachedLinks,
+        markdownContent: window.processedMarkdown || null,
+        hasProcessedContent: !!window.processedMarkdown
+      };
+      
+      // Call the parent handler
+      onFilesSubmit(submissionData);
     }
   };
 
@@ -134,11 +170,13 @@ const FileUpload = ({ onFilesSubmit, disabled = false }) => {
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
+          onClick={handleDropZoneClick}
         >
           <div className="drop-zone-content">
             <div className="upload-icon">📤</div>
             <p>Drag and drop files here, or click to browse</p>
             <input
+              ref={fileInputRef}
               type="file"
               multiple
               onChange={handleFileInputChange}

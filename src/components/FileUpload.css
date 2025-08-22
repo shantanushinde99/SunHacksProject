@@ -29,6 +29,7 @@
 
 .drop-zone-content {
   pointer-events: none;
+  user-select: none;
 }
 
 .upload-icon {
@@ -51,6 +52,7 @@
   opacity: 0;
   cursor: pointer;
   pointer-events: all;
+  z-index: 1;
 }
 
 .supported-formats {

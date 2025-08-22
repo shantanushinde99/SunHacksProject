@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getRecentSessions, getSessionResumeData } from '../lib/sessionService';
+import { detectTopicFromContent } from '../lib/gemini';
+import { getDisplayName } from '../lib/userProfileService';
 import TopicInput from './TopicInput';
 import FileUpload from './FileUpload';
 import SessionTypeSelector from './SessionTypeSelector';
+import TheGenie from './TheGenie';
 import './Dashboard.css';
 
-const Dashboard = ({ onStartLearning }) => {
+const Dashboard = ({ onStartLearning, onOpenProfile }) => {
   const { user, signOut } = useAuth();
   const [inputMethod, setInputMethod] = useState('topic'); // 'topic' or 'files'
+  const [displayName, setDisplayName] = useState(''); // full_name or email
+  const [loadingName, setLoadingName] = useState(false);
   const [sessionType, setSessionType] = useState('fast'); // 'fast' or 'depth'
   const [currentStep, setCurrentStep] = useState('input-method'); // 'input-method', 'session-type', 'ready'
   const [recentSessions, setRecentSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [showTheGenie, setShowTheGenie] = useState(false);
 
   // Handle topic submission
   const handleTopicSubmit = (topic) => {
@@ -23,11 +29,41 @@ const Dashboard = ({ onStartLearning }) => {
   };
 
   // Handle files submission
-  const handleFilesSubmit = (filesData) => {
+  const handleFilesSubmit = async (filesData) => {
     console.log('Files submitted:', filesData);
+    
+    // If we have processed markdown content, detect the topic
+    if (filesData.hasProcessedContent && filesData.markdownContent) {
+      try {
+        // Show loading state (you could add a loading state here)
+        console.log('Detecting topic from uploaded content...');
+        
+        // Detect topic from the markdown content
+        const topicInfo = await detectTopicFromContent(filesData.markdownContent);
+        console.log('Detected topic:', topicInfo);
+        
+        // Store both the files data and detected topic
+        window.selectedFiles = {
+          ...filesData,
+          detectedTopic: topicInfo.topic,
+          topicInfo: topicInfo
+        };
+        
+        // Store the detected topic for learning session
+        window.selectedTopic = topicInfo.topic;
+      } catch (error) {
+        console.error('Error detecting topic:', error);
+        // Fallback to generic topic
+        window.selectedFiles = filesData;
+        window.selectedTopic = 'Uploaded Content';
+      }
+    } else {
+      // No processed content, use generic topic
+      window.selectedFiles = filesData;
+      window.selectedTopic = 'Uploaded Content';
+    }
+    
     setCurrentStep('session-type');
-    // Store the files data for later use
-    window.selectedFiles = filesData;
   };
 
   // Handle session type selection
@@ -43,9 +79,15 @@ const Dashboard = ({ onStartLearning }) => {
         topic: window.selectedTopic
       });
     } else if (inputMethod === 'files' && window.selectedFiles) {
+      // Use the detected topic or fallback topic
+      const topic = window.selectedFiles.detectedTopic || window.selectedTopic || 'Uploaded Content';
+      
       onStartLearning && onStartLearning({
         type: sessionType,
-        files: window.selectedFiles
+        topic: topic,
+        files: window.selectedFiles,
+        markdownContent: window.selectedFiles.markdownContent,
+        topicInfo: window.selectedFiles.topicInfo
       });
     }
   };
@@ -109,13 +151,43 @@ const Dashboard = ({ onStartLearning }) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const fetchName = async () => {
+      if (!user) return;
+      setLoadingName(true);
+      try {
+        const name = await getDisplayName();
+        setDisplayName(name || user.email);
+      } catch (e) {
+        setDisplayName(user.email);
+      } finally {
+        setLoadingName(false);
+      }
+    };
+    fetchName();
+  }, [user]);
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1 className="dashboard-title">Study Genie</h1>
         <div className="user-info">
-          <span className="user-email">{user?.email}</span>
           <button 
+            onClick={() => setShowTheGenie(true)}
+            className="thegenie-button"
+            title="Ask TheGenie for help with your learning materials"
+          >
+            🧞‍♂️ Ask TheGenie
+          </button>
+          <button
+            className="user-email"
+            onClick={onOpenProfile}
+            title="View profile"
+            disabled={loadingName}
+          >
+            {loadingName ? 'Loading...' : (displayName || user?.email)}
+          </button>
+          <button
             onClick={signOut}
             className="signout-button"
           >
@@ -123,7 +195,7 @@ const Dashboard = ({ onStartLearning }) => {
           </button>
         </div>
       </header>
-      
+
       <main className="dashboard-main">
         {currentStep === 'input-method' && (
           <>
@@ -170,6 +242,20 @@ const Dashboard = ({ onStartLearning }) => {
               </button>
               <h2>Choose Your Learning Style</h2>
             </div>
+
+            {window.selectedFiles?.detectedTopic && (
+              <div className="detected-topic-info">
+                <h3>Detected Topic: {window.selectedFiles.detectedTopic}</h3>
+                {window.selectedFiles.topicInfo?.description && (
+                  <p>{window.selectedFiles.topicInfo.description}</p>
+                )}
+                {window.selectedFiles.topicInfo?.subtopics && window.selectedFiles.topicInfo.subtopics.length > 0 && (
+                  <div className="subtopics">
+                    <strong>Key areas:</strong> {window.selectedFiles.topicInfo.subtopics.join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
 
             <SessionTypeSelector
               selectedType={sessionType}
@@ -254,6 +340,11 @@ const Dashboard = ({ onStartLearning }) => {
           </div>
         </div>
       </main>
+      
+      {/* TheGenie Chatbot */}
+      {showTheGenie && (
+        <TheGenie onClose={() => setShowTheGenie(false)} />
+      )}
     </div>
   );
 };

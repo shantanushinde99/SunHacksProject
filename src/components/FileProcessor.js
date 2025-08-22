@@ -26,15 +26,32 @@ const FileProcessor = ({ files, onComplete, onError }) => {
 
   // Notify parent component when processing completes
   React.useEffect(() => {
-    if (!processing && (hasResults || hasErrors)) {
-      if (onComplete) {
-        onComplete({
-          results,
-          errors,
-          successCount,
-          errorCount
-        });
+    if (!processing && (hasResults || hasErrors) && results.length > 0) {
+      // Check if we have multiple files
+      if (results.length > 1) {
+        // Combine markdown content from all successful results
+        const combinedMarkdown = results
+          .filter(r => r.success && r.markdownContent)
+          .map(r => r.markdownContent)
+          .join('\n\n---\n\n');
+        
+        if (onComplete) {
+          onComplete({
+            results,
+            errors,
+            successCount,
+            errorCount,
+            combinedMarkdown,
+            allSuccess: results.every(r => r.success)
+          });
+        }
+      } else if (results.length === 1) {
+        // Single file result
+        if (onComplete) {
+          onComplete(results[0]);
+        }
       }
+      
       if (hasErrors && onError) {
         onError(errors);
       }

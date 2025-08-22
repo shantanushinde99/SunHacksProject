@@ -5,6 +5,7 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import DepthLearningSession from './components/DepthLearningSession';
 import FastLearningSession from './components/FastLearningSession';
+import Profile from './components/Profile';
 
 // Loading component
 const Loading = () => (
@@ -19,6 +20,7 @@ const AppContent = () => {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [learningData, setLearningData] = useState(null);
+  const [profileViewKey, setProfileViewKey] = useState(0); // refresh signal for profile
 
   if (loading) {
     return <Loading />;
@@ -36,6 +38,12 @@ const AppContent = () => {
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
     setLearningData(null);
+  };
+
+  const handleOpenProfile = () => {
+    setCurrentView('profile');
+    // bump key to force refresh if needed
+    setProfileViewKey(prev => prev + 1);
   };
 
   if (currentView === 'learning' && learningData) {
@@ -58,7 +66,11 @@ const AppContent = () => {
     }
   }
 
-  return <Dashboard onStartLearning={handleStartLearning} />;
+  if (currentView === 'profile') {
+    return <Profile key={profileViewKey} onBack={handleBackToDashboard} />;
+  }
+
+  return <Dashboard onStartLearning={handleStartLearning} onOpenProfile={handleOpenProfile} />;
 };
 
 function App() {

@@ -47,21 +47,48 @@ export async function processFile(file, userId) {
       throw new Error('No text could be extracted from the file');
     }
 
-    // Convert to markdown and upload to Supabase
+    // Convert to markdown
     const markdownContent = convertToMarkdown(extractedText, file.name, processingMethod);
+    
+    // Upload to Supabase and get storage info
     const storageResult = await uploadToSupabase(markdownContent, file.name, userId);
+    
+    // Store document metadata in database
+    const documentRecord = await storeDocumentMetadata({
+      userId,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      markdownUrl: storageResult.url,
+      storagePath: storageResult.path,
+      processingMethod,
+      extractedTextLength: extractedText.length
+    });
 
     return {
       success: true,
       fileName: file.name,
       extractedText,
+      markdownContent, // Return the markdown content for browser use
       processingMethod,
       markdownUrl: storageResult.url,
-      storageInfo: storageResult
+      storageInfo: storageResult,
+      documentId: documentRecord?.id
     };
 
   } catch (error) {
     console.error('File processing error:', error);
+    
+    // Check if it's a Supabase storage error
+    if (error.message && error.message.includes('storage')) {
+      return {
+        success: false,
+        error: 'Storage error: Please check your Supabase configuration',
+        details: error.message,
+        fileName: file.name
+      };
+    }
+    
     return {
       success: false,
       error: error.message,
@@ -246,20 +273,24 @@ async function uploadToSupabase(markdownContent, originalFileName, userId) {
     const timestamp = Date.now();
     const sanitizedFileName = originalFileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const markdownFileName = `${timestamp}_${sanitizedFileName}.md`;
-    const filePath = `extracted-content/${userId}/${markdownFileName}`;
+    const filePath = `${userId}/${markdownFileName}`;
     
     console.log(`Uploading to Supabase: ${filePath}`);
     
-    // Upload to Supabase storage
+    // Convert markdown string to Blob for upload
+    const blob = new Blob([markdownContent], { type: 'text/markdown' });
+    
+    // Upload to documents bucket
     const { data, error } = await supabase.storage
       .from('documents')
-      .upload(filePath, markdownContent, {
+      .upload(filePath, blob, {
         contentType: 'text/markdown',
-        upsert: false
+        upsert: true
       });
     
     if (error) {
-      throw new Error(`Supabase upload failed: ${error.message}`);
+      console.error('Upload error:', error);
+      throw error; // Let the caller handle the error
     }
     
     // Get public URL
@@ -278,7 +309,114 @@ async function uploadToSupabase(markdownContent, originalFileName, userId) {
     
   } catch (error) {
     console.error('Supabase upload error:', error);
-    throw new Error(`Failed to upload to storage: ${error.message}`);
+    throw error; // Re-throw to let caller handle
+  }
+}
+
+/**
+ * Store document metadata in database or session
+ * @param {Object} metadata - Document metadata
+ * @returns {Promise<Object>} Database record or session storage
+ */
+async function storeDocumentMetadata(metadata) {
+  try {
+    // First, check if the table exists by trying to query it
+    const { data: tableCheck, error: checkError } = await supabase
+      .from('user_documents')
+      .select('id')
+      .limit(1);
+    
+    // If table doesn't exist, store in session storage instead
+    if (checkError && checkError.code === 'PGRST205') {
+      console.log('user_documents table not found. Storing metadata in session.');
+      
+      // Store in session/local storage as fallback
+      const documentData = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        user_id: metadata.userId,
+        file_name: metadata.fileName,
+        file_type: metadata.fileType,
+        file_size: metadata.fileSize,
+        markdown_url: metadata.markdownUrl,
+        storage_path: metadata.storagePath,
+        processing_method: metadata.processingMethod,
+        extracted_text_length: metadata.extractedTextLength,
+        created_at: new Date().toISOString()
+      };
+      
+      // Store in sessionStorage
+      const existingDocs = JSON.parse(sessionStorage.getItem('user_documents') || '[]');
+      existingDocs.push(documentData);
+      sessionStorage.setItem('user_documents', JSON.stringify(existingDocs));
+      
+      return documentData;
+    }
+    
+    // If table exists, proceed with database insert
+    const { data, error } = await supabase
+      .from('user_documents')
+      .insert([
+        {
+          user_id: metadata.userId,
+          file_name: metadata.fileName,
+          file_type: metadata.fileType,
+          file_size: metadata.fileSize,
+          markdown_url: metadata.markdownUrl,
+          storage_path: metadata.storagePath,
+          processing_method: metadata.processingMethod,
+          extracted_text_length: metadata.extractedTextLength,
+          created_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error storing document metadata:', error);
+      // Store in session as fallback
+      const documentData = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        user_id: metadata.userId,
+        file_name: metadata.fileName,
+        file_type: metadata.fileType,
+        file_size: metadata.fileSize,
+        markdown_url: metadata.markdownUrl,
+        storage_path: metadata.storagePath,
+        processing_method: metadata.processingMethod,
+        extracted_text_length: metadata.extractedTextLength,
+        created_at: new Date().toISOString()
+      };
+      
+      const existingDocs = JSON.parse(sessionStorage.getItem('user_documents') || '[]');
+      existingDocs.push(documentData);
+      sessionStorage.setItem('user_documents', JSON.stringify(existingDocs));
+      
+      return documentData;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error storing document metadata:', error);
+    
+    // Fallback to session storage
+    const documentData = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      user_id: metadata.userId,
+      file_name: metadata.fileName,
+      file_type: metadata.fileType,
+      file_size: metadata.fileSize,
+      markdown_url: metadata.markdownUrl,
+      storage_path: metadata.storagePath,
+      processing_method: metadata.processingMethod,
+      extracted_text_length: metadata.extractedTextLength,
+      created_at: new Date().toISOString()
+    };
+    
+    const existingDocs = JSON.parse(sessionStorage.getItem('user_documents') || '[]');
+    existingDocs.push(documentData);
+    sessionStorage.setItem('user_documents', JSON.stringify(existingDocs));
+    
+    return documentData;
   }
 }
 
@@ -294,6 +432,20 @@ export async function processMultipleFiles(files, userId) {
   for (const file of files) {
     const result = await processFile(file, userId);
     results.push(result);
+  }
+  
+  // Combine all markdown content if multiple files
+  if (results.length > 1) {
+    const combinedMarkdown = results
+      .filter(r => r.success && r.markdownContent)
+      .map(r => r.markdownContent)
+      .join('\n\n---\n\n');
+    
+    return {
+      results,
+      combinedMarkdown,
+      allSuccess: results.every(r => r.success)
+    };
   }
   
   return results;

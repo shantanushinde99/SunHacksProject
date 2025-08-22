@@ -48,12 +48,9 @@ lerna-debug.log*
 supabase/
 *.md 
 
-src\components\ConceptLearning.js
-src\components\Evaluation.css
-src\components\Evaluation.js
-src\components\LearningComponent.css
-src\components\LearningComponent.js
-src\components\LearningSession.js
-src\components\LearningSession.css
-src\lib\learningFramework.js
-src\lib\learningFramework.test.js
+documents/
+faiss_index/
+backend/
+*sql
+t_groq.py
+test_groq.py

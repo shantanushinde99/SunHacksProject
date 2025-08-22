@@ -452,6 +452,74 @@ Return only the answer, no additional text.
 };
 
 // Generate flashcards for a given topic
+export const detectTopicFromContent = async (markdownContent) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const prompt = `
+You are an educational AI assistant. Analyze the following extracted content and determine the primary topic or subject matter.
+
+Content:
+"""${markdownContent.substring(0, 4000)}""" ${markdownContent.length > 4000 ? '...(truncated)' : ''}
+
+Based on this content, provide:
+1. The main topic/subject (concise, 2-5 words)
+2. A brief description of what the content covers (1-2 sentences)
+3. Up to 3 key subtopics or concepts mentioned
+4. The academic level (elementary, middle school, high school, undergraduate, graduate, professional)
+5. Suggested learning approach (theoretical, practical, problem-solving, mixed)
+
+Format your response as JSON:
+{
+  "topic": "Main Topic Name",
+  "description": "Brief description of content",
+  "subtopics": ["Subtopic 1", "Subtopic 2", "Subtopic 3"],
+  "level": "academic level",
+  "approach": "suggested approach"
+}
+
+Only return the JSON, no additional text.
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    try {
+      // Remove markdown code blocks if present
+      let cleanText = text.trim();
+      if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.replace(/```json\s*/, '').replace(/```\s*$/, '');
+      } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/```\s*/, '').replace(/```\s*$/, '');
+      }
+      
+      const topicInfo = JSON.parse(cleanText.trim());
+      return topicInfo;
+    } catch (parseError) {
+      console.error('Failed to parse topic detection JSON:', parseError);
+      // Fallback topic detection
+      return {
+        topic: "General Study Material",
+        description: "Educational content extracted from uploaded documents.",
+        subtopics: ["Key Concepts", "Applications", "Examples"],
+        level: "undergraduate",
+        approach: "mixed"
+      };
+    }
+  } catch (error) {
+    console.error('Error detecting topic from content:', error);
+    // Return fallback topic info
+    return {
+      topic: "Uploaded Content",
+      description: "Content extracted from your uploaded files.",
+      subtopics: ["Main Concepts"],
+      level: "undergraduate",
+      approach: "mixed"
+    };
+  }
+};
+
 export const generateFlashcards = async (topic) => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
