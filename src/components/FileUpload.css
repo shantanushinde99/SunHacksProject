@@ -1,0 +1,227 @@
+.file-upload-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.file-drop-zone {
+  border: 2px dashed rgba(76, 175, 80, 0.3);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  background: rgba(45, 45, 45, 0.8);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.file-drop-zone:hover {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.file-drop-zone.drag-active {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.2);
+  transform: scale(1.02);
+}
+
+.drop-zone-content {
+  pointer-events: none;
+}
+
+.upload-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.drop-zone-content p {
+  color: #ffffff;
+  font-size: 16px;
+  margin: 0 0 12px 0;
+}
+
+.hidden-file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+.supported-formats {
+  font-size: 12px;
+  color: #b0b0b0;
+}
+
+.link-input-section {
+  margin-bottom: 20px;
+}
+
+.link-input-group {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+}
+
+.link-input-field {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: rgba(45, 45, 45, 0.8);
+  color: #ffffff;
+}
+
+.link-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.link-input-field:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.link-input-field:disabled {
+  background: rgba(45, 45, 45, 0.5);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+.link-add-button {
+  padding: 12px 20px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.link-add-button:hover:not(:disabled) {
+  background: #388E3C;
+}
+
+.link-add-button:disabled {
+  background: rgba(45, 45, 45, 0.5);
+  cursor: not-allowed;
+}
+
+.attachments-display {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
+}
+
+.attachments-display h4 {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.attachments-list {
+  margin-bottom: 20px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(45, 45, 45, 0.8);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.attachment-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  color: #4CAF50;
+}
+
+.attachment-name {
+  flex: 1;
+  font-size: 14px;
+  color: #ffffff;
+  word-break: break-all;
+}
+
+.processing-badge {
+  display: inline-block;
+  background: #10b981;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+.remove-attachment {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.remove-attachment:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.remove-attachment:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+.files-submit-button {
+  width: 100%;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #4CAF50, #388E3C);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.files-submit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #388E3C, #2E7D32);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.files-submit-button:disabled {
+  background: rgba(45, 45, 45, 0.5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .link-input-group {
+    flex-direction: row;
+    align-items: center;
+  }
+}

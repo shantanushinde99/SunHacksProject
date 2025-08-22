@@ -501,3 +501,132 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Input Method Selection Styles */
+.input-method-selection {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.method-selector {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.method-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+  backdrop-filter: blur(10px);
+}
+
+.method-option:hover {
+  border-color: #4CAF50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  transform: translateY(-2px);
+}
+
+.method-option.selected {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.2);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.method-icon {
+  font-size: 32px;
+}
+
+.method-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.selected-method-content {
+  margin-top: 40px;
+}
+
+/* Step Header Styles */
+.step-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.back-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.step-header h2 {
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Start Session Styles */
+.start-session-section {
+  text-align: center;
+  margin: 40px 0;
+}
+
+.start-session-button {
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+}
+
+.start-session-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+}
+
+.start-session-button:disabled {
+  background: rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .method-selector {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .method-option {
+    width: 100%;
+    max-width: 300px;
+  }
+}

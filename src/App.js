@@ -3,7 +3,8 @@ import './App.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
-import LearningSession from './components/LearningSession';
+import DepthLearningSession from './components/DepthLearningSession';
+import FastLearningSession from './components/FastLearningSession';
 
 // Loading component
 const Loading = () => (
@@ -17,7 +18,7 @@ const Loading = () => (
 const AppContent = () => {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
-  const [learningTopic, setLearningTopic] = useState('');
+  const [learningData, setLearningData] = useState(null);
 
   if (loading) {
     return <Loading />;
@@ -27,18 +28,32 @@ const AppContent = () => {
     return <Auth />;
   }
 
-  const handleStartLearning = (topic) => {
-    setLearningTopic(topic);
+  const handleStartLearning = (data) => {
+    setLearningData(data);
     setCurrentView('learning');
   };
 
   const handleBackToDashboard = () => {
     setCurrentView('dashboard');
-    setLearningTopic('');
+    setLearningData(null);
   };
 
-  if (currentView === 'learning') {
-    return <LearningSession topic={learningTopic} onBack={handleBackToDashboard} />;
+  if (currentView === 'learning' && learningData) {
+    if (learningData.type === 'fast') {
+      return (
+        <FastLearningSession
+          topic={learningData.topic || 'Uploaded Content'}
+          onBack={handleBackToDashboard}
+        />
+      );
+    } else if (learningData.type === 'depth') {
+      return (
+        <DepthLearningSession
+          topic={learningData.topic || 'Uploaded Content'}
+          onBack={handleBackToDashboard}
+        />
+      );
+    }
   }
 
   return <Dashboard onStartLearning={handleStartLearning} />;
