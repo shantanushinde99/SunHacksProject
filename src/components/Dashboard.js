@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getRecentSessions } from '../lib/sessionService';
+import { getRecentSessions, getSessionResumeData } from '../lib/sessionService';
 import TopicInput from './TopicInput';
 import FileUpload from './FileUpload';
 import SessionTypeSelector from './SessionTypeSelector';
@@ -72,6 +72,33 @@ const Dashboard = ({ onStartLearning }) => {
       console.error('Error loading recent sessions:', error);
     } finally {
       setLoadingSessions(false);
+    }
+  };
+
+  // Handle continuing a session
+  const handleContinueSession = async (sessionId) => {
+    try {
+      console.log('Continuing session:', sessionId);
+      const result = await getSessionResumeData(sessionId);
+
+      if (result.success) {
+        const resumeData = result.resumeData;
+        console.log('Resume data:', resumeData);
+
+        // Navigate to appropriate learning session with resume data
+        onStartLearning && onStartLearning({
+          type: resumeData.sessionType,
+          topic: resumeData.topic,
+          resumeData: resumeData
+        });
+      } else {
+        console.error('Failed to get resume data:', result.error);
+        // Could show a toast notification here
+        alert('Failed to continue session. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error continuing session:', error);
+      alert('Failed to continue session. Please try again.');
     }
   };
 
@@ -203,6 +230,19 @@ const Dashboard = ({ onStartLearning }) => {
                       {new Date(session.created_at).toLocaleDateString()}
                     </span>
                   </div>
+
+                  {/* Continue button for in-progress sessions */}
+                  {session.status === 'in_progress' && (
+                    <div className="session-actions">
+                      <button
+                        className="continue-session-button"
+                        onClick={() => handleContinueSession(session.id)}
+                      >
+                        <span className="continue-icon">▶️</span>
+                        Continue Session
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (

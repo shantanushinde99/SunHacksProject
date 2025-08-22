@@ -75,16 +75,27 @@ Each question should:
 3. Have only one correct answer
 4. Be at an appropriate difficulty level for someone learning this topic
 5. Cover different aspects of the topic
+6. Include detailed explanations for learning
 
 Format your response as a JSON array with this exact structure:
 [
   {
     "question": "Question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswer": "Option B"
+    "correctAnswer": "Option B",
+    "explanation": "Detailed explanation of why Option B is correct and what concept it demonstrates",
+    "whyWrongExplanation": "Brief explanation of why the other options are incorrect",
+    "topicCategory": "Specific subtopic or category this question covers",
+    "difficultyLevel": "easy"
   },
   // ... 4 more questions
 ]
+
+Make sure to:
+- Provide clear, educational explanations that help users learn
+- Categorize questions into specific subtopics
+- Vary difficulty levels (easy, medium, hard)
+- Explain why wrong answers are incorrect
 
 Only return the JSON array, no additional text or explanation.
 `;
@@ -107,63 +118,103 @@ Only return the JSON array, no additional text or explanation.
       return questions;
     } catch (parseError) {
       console.error('Failed to parse MCQ questions JSON:', parseError);
-      // Fallback questions
+      // Fallback questions with explanations
       return [
         {
           question: `What is a key concept in ${topic}?`,
           options: ["Option A", "Option B", "Option C", "Option D"],
-          correctAnswer: "Option A"
+          correctAnswer: "Option A",
+          explanation: `This is a fundamental concept related to ${topic} that forms the foundation of understanding.`,
+          whyWrongExplanation: "The other options don't represent core concepts of this topic.",
+          topicCategory: "Basic Concepts",
+          difficultyLevel: "easy"
         },
         {
           question: `Which statement best describes ${topic}?`,
           options: ["Statement A", "Statement B", "Statement C", "Statement D"],
-          correctAnswer: "Statement B"
+          correctAnswer: "Statement B",
+          explanation: `This statement accurately captures the essence and main characteristics of ${topic}.`,
+          whyWrongExplanation: "The other statements contain inaccuracies or incomplete information.",
+          topicCategory: "Definitions",
+          difficultyLevel: "medium"
         },
         {
           question: `What is the primary purpose of ${topic}?`,
           options: ["Purpose A", "Purpose B", "Purpose C", "Purpose D"],
-          correctAnswer: "Purpose C"
+          correctAnswer: "Purpose C",
+          explanation: `The main goal and objective of ${topic} is best represented by this purpose.`,
+          whyWrongExplanation: "The other purposes are either secondary or not directly related.",
+          topicCategory: "Applications",
+          difficultyLevel: "medium"
         },
         {
           question: `How does ${topic} relate to other concepts?`,
           options: ["Relation A", "Relation B", "Relation C", "Relation D"],
-          correctAnswer: "Relation D"
+          correctAnswer: "Relation D",
+          explanation: `This relationship shows how ${topic} connects with and influences other related concepts.`,
+          whyWrongExplanation: "The other relationships are either incorrect or less significant.",
+          topicCategory: "Relationships",
+          difficultyLevel: "hard"
         },
         {
           question: `What is an important application of ${topic}?`,
           options: ["Application A", "Application B", "Application C", "Application D"],
-          correctAnswer: "Application A"
+          correctAnswer: "Application A",
+          explanation: `This application demonstrates the practical use and real-world relevance of ${topic}.`,
+          whyWrongExplanation: "The other applications are either less common or not directly applicable.",
+          topicCategory: "Practical Applications",
+          difficultyLevel: "medium"
         }
       ];
     }
   } catch (error) {
     console.error('Error generating MCQ questions:', error);
-    // Return fallback questions
+    // Return fallback questions with explanations
     return [
       {
         question: `What is a key concept in ${topic}?`,
         options: ["Option A", "Option B", "Option C", "Option D"],
-        correctAnswer: "Option A"
+        correctAnswer: "Option A",
+        explanation: `This is a fundamental concept related to ${topic} that forms the foundation of understanding.`,
+        whyWrongExplanation: "The other options don't represent core concepts of this topic.",
+        topicCategory: "Basic Concepts",
+        difficultyLevel: "easy"
       },
       {
         question: `Which statement best describes ${topic}?`,
         options: ["Statement A", "Statement B", "Statement C", "Statement D"],
-        correctAnswer: "Statement B"
+        correctAnswer: "Statement B",
+        explanation: `This statement accurately captures the essence and main characteristics of ${topic}.`,
+        whyWrongExplanation: "The other statements contain inaccuracies or incomplete information.",
+        topicCategory: "Definitions",
+        difficultyLevel: "medium"
       },
       {
         question: `What is the primary purpose of ${topic}?`,
         options: ["Purpose A", "Purpose B", "Purpose C", "Purpose D"],
-        correctAnswer: "Purpose C"
+        correctAnswer: "Purpose C",
+        explanation: `The main goal and objective of ${topic} is best represented by this purpose.`,
+        whyWrongExplanation: "The other purposes are either secondary or not directly related.",
+        topicCategory: "Applications",
+        difficultyLevel: "medium"
       },
       {
         question: `How does ${topic} relate to other concepts?`,
         options: ["Relation A", "Relation B", "Relation C", "Relation D"],
-        correctAnswer: "Relation D"
+        correctAnswer: "Relation D",
+        explanation: `This relationship shows how ${topic} connects with and influences other related concepts.`,
+        whyWrongExplanation: "The other relationships are either incorrect or less significant.",
+        topicCategory: "Relationships",
+        difficultyLevel: "hard"
       },
       {
         question: `What is an important application of ${topic}?`,
         options: ["Application A", "Application B", "Application C", "Application D"],
-        correctAnswer: "Application A"
+        correctAnswer: "Application A",
+        explanation: `This application demonstrates the practical use and real-world relevance of ${topic}.`,
+        whyWrongExplanation: "The other applications are either less common or not directly applicable.",
+        topicCategory: "Practical Applications",
+        difficultyLevel: "medium"
       }
     ];
   }

@@ -72,7 +72,11 @@ export const createSession = async (sessionData) => {
         options: question.options,
         correct_answer: question.correctAnswer,
         user_answer: null,
-        is_correct: null
+        is_correct: null,
+        topic_category: question.topicCategory || 'General',
+        difficulty_level: question.difficultyLevel || 'medium',
+        explanation: question.explanation || '',
+        why_wrong_explanation: question.whyWrongExplanation || ''
       }));
 
       const { error: questionError } = await supabase
@@ -306,6 +310,189 @@ export const deleteSession = async (sessionId) => {
     return { success: true };
   } catch (error) {
     console.error('Error deleting session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get session resume data with calculated state
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<Object>} Resume data for the session
+ */
+export const getSessionResumeData = async (sessionId) => {
+  try {
+    // Get complete session data
+    const sessionResult = await getSessionById(sessionId);
+    if (!sessionResult.success) {
+      throw new Error(sessionResult.error);
+    }
+
+    const session = sessionResult.session;
+
+    // Calculate studied cards set
+    const studiedCards = new Set(
+      session.flashcards
+        .filter(card => card.is_studied)
+        .map(card => card.flashcard_index)
+    );
+
+    // Calculate current card index (next unstudied card)
+    let currentCardIndex = 0;
+    for (let i = 0; i < session.flashcards.length; i++) {
+      if (!studiedCards.has(i)) {
+        currentCardIndex = i;
+        break;
+      }
+    }
+
+    // If all cards are studied, set to last card
+    if (studiedCards.size === session.flashcards.length && session.flashcards.length > 0) {
+      currentCardIndex = session.flashcards.length - 1;
+    }
+
+    // Determine current phase based on progress
+    let currentPhase = 'flashcards';
+
+    if (session.session_type === 'fast') {
+      if (session.status === 'completed') {
+        currentPhase = 'completed';
+      } else if (studiedCards.size === session.total_flashcards && session.total_flashcards > 0) {
+        currentPhase = 'evaluation';
+      } else {
+        currentPhase = 'flashcards';
+      }
+    } else if (session.session_type === 'depth') {
+      // For depth sessions, we need to check prerequisite_results and other factors
+      if (session.status === 'completed') {
+        currentPhase = 'completed';
+      } else if (session.prerequisite_results) {
+        currentPhase = 'learning'; // or 'final-evaluation' based on learning progress
+      } else if (session.prerequisites) {
+        currentPhase = 'evaluation';
+      } else {
+        currentPhase = 'prerequisites';
+      }
+    }
+
+    // Get answered questions
+    const answeredQuestions = session.questions.filter(q => q.user_answer !== null);
+
+    return {
+      success: true,
+      resumeData: {
+        sessionId: session.id,
+        sessionType: session.session_type,
+        topic: session.topic,
+        currentPhase,
+
+        // Flashcard data
+        flashcards: session.flashcards.map(card => ({
+          question: card.question,
+          answer: card.answer
+        })),
+        studiedCards,
+        currentCardIndex,
+
+        // Question data
+        questions: session.questions.map(q => ({
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correct_answer
+        })),
+        answeredQuestions: answeredQuestions.map(q => ({
+          questionIndex: q.question_index,
+          userAnswer: q.user_answer,
+          isCorrect: q.is_correct
+        })),
+
+        // Session metadata
+        totalFlashcards: session.total_flashcards,
+        studiedFlashcardsCount: session.studied_flashcards,
+        totalQuestions: session.total_questions,
+        correctAnswers: session.correct_answers,
+
+        // Depth session specific data
+        prerequisites: session.prerequisites,
+        prerequisiteResults: session.prerequisite_results,
+        coreConcepts: session.core_concepts,
+        advancedConcepts: session.advanced_concepts,
+        evaluationResults: session.evaluation_results
+      }
+    };
+  } catch (error) {
+    console.error('Error getting session resume data:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Update session phase and related data
+ * @param {string} sessionId - Session ID
+ * @param {string} phase - Current phase
+ * @param {Object} phaseData - Phase-specific data
+ * @returns {Promise<Object>} Update result
+ */
+export const updateSessionPhase = async (sessionId, phase, phaseData = {}) => {
+  try {
+    const updateData = {
+      updated_at: new Date().toISOString(),
+      ...phaseData
+    };
+
+    // Store phase information in evaluation_results for now
+    // (we could add a dedicated phase field in future schema updates)
+    if (phase) {
+      updateData.evaluation_results = {
+        ...updateData.evaluation_results,
+        currentPhase: phase,
+        phaseData: phaseData
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('learning_sessions')
+      .update(updateData)
+      .eq('id', sessionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return { success: true, session: data };
+  } catch (error) {
+    console.error('Error updating session phase:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Save current session state for resuming later
+ * @param {string} sessionId - Session ID
+ * @param {Object} sessionState - Current session state
+ * @returns {Promise<Object>} Save result
+ */
+export const saveSessionState = async (sessionId, sessionState) => {
+  try {
+    const updateData = {
+      updated_at: new Date().toISOString(),
+      evaluation_results: {
+        ...sessionState,
+        lastSaved: new Date().toISOString()
+      }
+    };
+
+    const { data, error } = await supabase
+      .from('learning_sessions')
+      .update(updateData)
+      .eq('id', sessionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return { success: true, session: data };
+  } catch (error) {
+    console.error('Error saving session state:', error);
     return { success: false, error: error.message };
   }
 };

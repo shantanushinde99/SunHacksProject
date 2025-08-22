@@ -98,16 +98,39 @@ CREATE TABLE IF NOT EXISTS session_questions (
     user_answer TEXT,
     is_correct BOOLEAN,
     answered_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Additional fields for evaluation report
+    topic_category VARCHAR(200),
+    difficulty_level VARCHAR(20) DEFAULT 'medium',
+    explanation TEXT,
+    why_wrong_explanation TEXT
+);
+
+-- Create topic_struggles table for tracking user difficulties
+CREATE TABLE IF NOT EXISTS topic_struggles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    topic_name VARCHAR(200) NOT NULL,
+    struggle_count INTEGER DEFAULT 1,
+    total_attempts INTEGER DEFAULT 1,
+    last_struggled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Composite unique constraint to prevent duplicates
+    UNIQUE(user_id, topic_name)
 );
 
 -- Indexes for related tables
 CREATE INDEX IF NOT EXISTS idx_session_flashcards_session_id ON session_flashcards(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_questions_session_id ON session_questions(session_id);
+CREATE INDEX IF NOT EXISTS idx_topic_struggles_user_id ON topic_struggles(user_id);
+CREATE INDEX IF NOT EXISTS idx_topic_struggles_topic_name ON topic_struggles(topic_name);
 
 -- RLS for related tables
 ALTER TABLE session_flashcards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topic_struggles ENABLE ROW LEVEL SECURITY;
 
 -- Policies for session_flashcards
 CREATE POLICY "Users can view their own session flashcards" ON session_flashcards
@@ -159,8 +182,30 @@ CREATE POLICY "Users can insert their own session questions" ON session_question
 CREATE POLICY "Users can update their own session questions" ON session_questions
     FOR UPDATE USING (
         EXISTS (
-            SELECT 1 FROM learning_sessions 
-            WHERE learning_sessions.id = session_questions.session_id 
+            SELECT 1 FROM learning_sessions
+            WHERE learning_sessions.id = session_questions.session_id
             AND learning_sessions.user_id = auth.uid()
         )
     );
+
+CREATE POLICY "Users can delete their own session questions" ON session_questions
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM learning_sessions
+            WHERE learning_sessions.id = session_questions.session_id
+            AND learning_sessions.user_id = auth.uid()
+        )
+    );
+
+-- Policies for topic_struggles
+CREATE POLICY "Users can view their own topic struggles" ON topic_struggles
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert their own topic struggles" ON topic_struggles
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update their own topic struggles" ON topic_struggles
+    FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own topic struggles" ON topic_struggles
+    FOR DELETE USING (user_id = auth.uid());

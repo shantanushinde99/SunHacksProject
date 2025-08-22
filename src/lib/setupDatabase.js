@@ -129,7 +129,13 @@ export const createTables = async () => {
           user_answer TEXT,
           is_correct BOOLEAN,
           answered_at TIMESTAMP WITH TIME ZONE,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+          -- Additional fields for evaluation report
+          topic_category VARCHAR(200),
+          difficulty_level VARCHAR(20) DEFAULT 'medium',
+          explanation TEXT,
+          why_wrong_explanation TEXT
         );
       `
     });
@@ -137,6 +143,29 @@ export const createTables = async () => {
     if (questionsError) {
       console.error('Error creating session_questions table:', questionsError);
       return { success: false, error: questionsError.message };
+    }
+
+    // Create topic_struggles table
+    const { error: strugglesError } = await supabase.rpc('exec_sql', {
+      sql: `
+        CREATE TABLE IF NOT EXISTS topic_struggles (
+          id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+          user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+          topic_name VARCHAR(200) NOT NULL,
+          struggle_count INTEGER DEFAULT 1,
+          total_attempts INTEGER DEFAULT 1,
+          last_struggled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+          -- Composite unique constraint to prevent duplicates
+          UNIQUE(user_id, topic_name)
+        );
+      `
+    });
+
+    if (strugglesError) {
+      console.error('Error creating topic_struggles table:', strugglesError);
+      return { success: false, error: strugglesError.message };
     }
 
     console.log('Database tables created successfully');

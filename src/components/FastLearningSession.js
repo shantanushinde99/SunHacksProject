@@ -6,25 +6,31 @@ import {
   markFlashcardStudied,
   recordQuestionAnswer
 } from '../lib/sessionService';
+import { recordMultipleTopicStruggles } from '../lib/topicStruggleService';
+import SessionDebugInfo from './SessionDebugInfo';
+import EvaluationReport from './EvaluationReport';
 import './FastLearningSession.css';
 
-const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
+const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBack }) => {
   const [topic] = useState(initialTopic);
-  const [currentPhase, setCurrentPhase] = useState('flashcards'); // 'flashcards', 'evaluation', 'completed'
-  const [flashcards, setFlashcards] = useState([]);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [currentPhase, setCurrentPhase] = useState(resumeData?.currentPhase || 'flashcards'); // 'flashcards', 'evaluation', 'report', 'completed'
+  const [flashcards, setFlashcards] = useState(resumeData?.flashcards || []);
+  const [currentCardIndex, setCurrentCardIndex] = useState(resumeData?.currentCardIndex || 0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [studiedCards, setStudiedCards] = useState(new Set());
+  const [studiedCards, setStudiedCards] = useState(resumeData?.studiedCards || new Set());
   const [loading, setLoading] = useState(false);
 
   // Session management
-  const [sessionId, setSessionId] = useState(null);
-  const [sessionCreated, setSessionCreated] = useState(false);
+  const [sessionId, setSessionId] = useState(resumeData?.sessionId || null);
+  const [sessionCreated, setSessionCreated] = useState(!!resumeData); // If resumeData exists, session is already created
 
   // Evaluation state
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState(resumeData?.questions || []);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(resumeData?.answeredQuestions ?
+    resumeData.answeredQuestions.reduce((acc, q) => ({ ...acc, [q.questionIndex]: q.userAnswer }), {}) :
+    {}
+  );
   const [selectedAnswer, setSelectedAnswer] = useState('');
   const [evaluationResults, setEvaluationResults] = useState(null);
 
@@ -103,10 +109,30 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
   }, [topic, sessionCreated]);
 
   useEffect(() => {
-    if (initialTopic && initialTopic.trim()) {
+    if (initialTopic && initialTopic.trim() && !resumeData) {
       initializeSession();
+    } else if (resumeData) {
+      // If resuming, we already have the data, just log it
+      console.log('Resuming session with data:', resumeData);
+      console.log('Current phase:', resumeData.currentPhase);
+      console.log('Current card index:', resumeData.currentCardIndex);
+      console.log('Studied cards:', resumeData.studiedCards);
+
+      // If resuming in evaluation phase, set the correct question index
+      if (resumeData.currentPhase === 'evaluation' && resumeData.answeredQuestions) {
+        const answeredIndices = new Set(resumeData.answeredQuestions.map(q => q.questionIndex));
+        let firstUnanswered = 0;
+        for (let i = 0; i < resumeData.questions.length; i++) {
+          if (!answeredIndices.has(i)) {
+            firstUnanswered = i;
+            break;
+          }
+        }
+        setCurrentQuestionIndex(firstUnanswered);
+        console.log('Resuming evaluation at question:', firstUnanswered);
+      }
     }
-  }, [initialTopic, initializeSession]);
+  }, [initialTopic, initializeSession, resumeData]);
 
   // Flashcard navigation
   const handleCardClick = async () => {
@@ -144,8 +170,23 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
   // Start evaluation phase
   const handleStartEvaluation = async () => {
     setCurrentPhase('evaluation');
-    setCurrentQuestionIndex(0);
-    setAnswers({});
+
+    // If resuming, find the first unanswered question
+    if (resumeData && resumeData.answeredQuestions) {
+      const answeredIndices = new Set(resumeData.answeredQuestions.map(q => q.questionIndex));
+      let firstUnanswered = 0;
+      for (let i = 0; i < questions.length; i++) {
+        if (!answeredIndices.has(i)) {
+          firstUnanswered = i;
+          break;
+        }
+      }
+      setCurrentQuestionIndex(firstUnanswered);
+    } else {
+      setCurrentQuestionIndex(0);
+      setAnswers({});
+    }
+
     setSelectedAnswer('');
   };
 
@@ -207,10 +248,23 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
       correct: correctCount,
       total: totalQuestions,
       percentage,
-      passed: percentage >= 60 // 60% passing threshold
+      passed: percentage >= 70 // 70% passing threshold
     };
 
     setEvaluationResults(results);
+
+    // Record topic struggles for analytics
+    try {
+      const evaluationData = questions.map((question, index) => ({
+        topicCategory: question.topicCategory || 'General',
+        isCorrect: finalAnswers[index]?.isCorrect || false
+      }));
+
+      await recordMultipleTopicStruggles(evaluationData);
+      console.log('Topic struggles recorded successfully');
+    } catch (error) {
+      console.error('Error recording topic struggles:', error);
+    }
 
     // Update session as completed in database
     if (sessionId) {
@@ -222,7 +276,23 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
       });
     }
 
+    // Show evaluation report instead of going directly to completed
+    setCurrentPhase('report');
+  };
+
+  // Handle continuing from evaluation report
+  const handleReportContinue = () => {
     setCurrentPhase('completed');
+  };
+
+  // Handle retrying evaluation
+  const handleReportRetry = () => {
+    // Reset evaluation state
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer('');
+    setAnswers({});
+    setEvaluationResults(null);
+    setCurrentPhase('evaluation');
   };
 
   const allCardsStudied = studiedCards.size === flashcards.length;
@@ -237,6 +307,23 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
           <p>Preparing your fast learning session...</p>
         </div>
       </div>
+    );
+  }
+
+  // Render evaluation report phase
+  if (currentPhase === 'report') {
+    // Convert answers object to array format for the report
+    const userAnswersArray = questions.map((_, index) => answers[index]?.selectedAnswer || '');
+
+    return (
+      <EvaluationReport
+        evaluationResults={evaluationResults}
+        questions={questions}
+        userAnswers={userAnswersArray}
+        onContinue={handleReportContinue}
+        onRetry={handleReportRetry}
+        sessionId={sessionId}
+      />
     );
   }
 
@@ -344,6 +431,17 @@ const FastLearningSession = ({ topic: initialTopic = '', onBack }) => {
   // Render flashcards phase (default)
   return (
     <div className="fast-learning-container">
+      {/* Debug info - only shows in development */}
+      <SessionDebugInfo
+        sessionId={sessionId}
+        currentPhase={currentPhase}
+        currentCardIndex={currentCardIndex}
+        studiedCards={studiedCards}
+        currentQuestionIndex={currentQuestionIndex}
+        answers={answers}
+        resumeData={resumeData}
+      />
+
       <div className="nav-menu" onClick={onBack}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="3" y1="6" x2="21" y2="6"/>

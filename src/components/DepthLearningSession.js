@@ -5,24 +5,26 @@ import Evaluation from './Evaluation';
 import LearningComponent from './LearningComponent';
 import './DepthLearningSession.css';
 
-const DepthLearningSession = ({ topic: initialTopic = '', onBack }) => {
+const DepthLearningSession = ({ topic: initialTopic = '', resumeData = null, onBack }) => {
   const [topic, setTopic] = useState(initialTopic);
-  const [prerequisites, setPrerequisites] = useState([]);
-  const [selectedPrerequisites, setSelectedPrerequisites] = useState(new Set());
+  const [prerequisites, setPrerequisites] = useState(resumeData?.prerequisites || []);
+  const [selectedPrerequisites, setSelectedPrerequisites] = useState(
+    resumeData?.selectedPrerequisites ? new Set(resumeData.selectedPrerequisites) : new Set()
+  );
   const [loading, setLoading] = useState(false);
-  const [currentPhase, setCurrentPhase] = useState('prerequisites'); // 'prerequisites', 'evaluation', 'learning', 'final-evaluation', 'completed'
-  const [topicsToLearn, setTopicsToLearn] = useState([]);
+  const [currentPhase, setCurrentPhase] = useState(resumeData?.currentPhase || 'prerequisites'); // 'prerequisites', 'evaluation', 'learning', 'final-evaluation', 'completed'
+  const [topicsToLearn, setTopicsToLearn] = useState(resumeData?.topicsToLearn || []);
   // const [evaluationResults, setEvaluationResults] = useState(null); // Not used currently
-  const [finalEvaluationResults, setFinalEvaluationResults] = useState(null);
+  const [finalEvaluationResults, setFinalEvaluationResults] = useState(resumeData?.evaluationResults || null);
 
   // Session management
-  const [sessionId, setSessionId] = useState(null);
-  const [sessionCreated, setSessionCreated] = useState(false);
+  const [sessionId, setSessionId] = useState(resumeData?.sessionId || null);
+  const [sessionCreated, setSessionCreated] = useState(!!resumeData);
 
-  // Auto-submit if we have an initial topic and create session
+  // Auto-submit if we have an initial topic and create session (skip if resuming)
   React.useEffect(() => {
     const autoSubmit = async () => {
-      if (initialTopic && initialTopic.trim() && !sessionCreated) {
+      if (initialTopic && initialTopic.trim() && !sessionCreated && !resumeData) {
         setLoading(true);
         try {
           const prerequisites = await generatePrerequisites(initialTopic);
@@ -50,11 +52,17 @@ const DepthLearningSession = ({ topic: initialTopic = '', onBack }) => {
         } finally {
           setLoading(false);
         }
+      } else if (resumeData) {
+        // If resuming, we already have the data, just log it
+        console.log('Resuming depth session with data:', resumeData);
+        console.log('Current phase:', resumeData.currentPhase);
+        console.log('Prerequisites:', resumeData.prerequisites);
+        console.log('Topics to learn:', resumeData.topicsToLearn);
       }
     };
 
     autoSubmit();
-  }, [initialTopic, sessionCreated]);
+  }, [initialTopic, sessionCreated, resumeData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

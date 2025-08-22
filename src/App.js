@@ -43,6 +43,7 @@ const AppContent = () => {
       return (
         <FastLearningSession
           topic={learningData.topic || 'Uploaded Content'}
+          resumeData={learningData.resumeData}
           onBack={handleBackToDashboard}
         />
       );
@@ -50,6 +51,7 @@ const AppContent = () => {
       return (
         <DepthLearningSession
           topic={learningData.topic || 'Uploaded Content'}
+          resumeData={learningData.resumeData}
           onBack={handleBackToDashboard}
         />
       );
