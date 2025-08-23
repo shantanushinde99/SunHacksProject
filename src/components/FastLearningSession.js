@@ -9,6 +9,7 @@ import {
 import { recordMultipleTopicStruggles } from '../lib/topicStruggleService';
 import SessionDebugInfo from './SessionDebugInfo';
 import EvaluationReport from './EvaluationReport';
+import MagicLoader from './MagicLoader';
 import './FastLearningSession.css';
 
 const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBack }) => {
@@ -303,7 +304,7 @@ const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBa
     return (
       <div className="fast-learning-container">
         <div className="loading-section">
-          <div className="loading-spinner"></div>
+          <MagicLoader size={120} particleCount={2} speed={1.2} hueRange={[200, 280]} />
           <p>Preparing your fast learning session...</p>
         </div>
       </div>
@@ -495,16 +496,31 @@ const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBa
             </div>
 
             <div className="card-navigation">
-              <button 
-                onClick={handlePrevCard} 
+              <button
+                onClick={handlePrevCard}
                 disabled={currentCardIndex === 0}
                 className="nav-button"
               >
                 ← Previous
               </button>
-              
-              <button 
-                onClick={handleNextCard} 
+
+              <div className="card-indicators">
+                {flashcards.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`indicator ${index === currentCardIndex ? 'active' : ''} ${studiedCards.has(index) ? 'studied' : ''}`}
+                    onClick={() => {
+                      setCurrentCardIndex(index);
+                      setIsFlipped(false);
+                    }}
+                  >
+                    {studiedCards.has(index) && <span className="tick-mark">✓</span>}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={handleNextCard}
                 disabled={currentCardIndex === flashcards.length - 1}
                 className="nav-button"
               >

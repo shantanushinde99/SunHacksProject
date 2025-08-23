@@ -6,11 +6,12 @@ import Dashboard from './components/Dashboard';
 import DepthLearningSession from './components/DepthLearningSession';
 import FastLearningSession from './components/FastLearningSession';
 import Profile from './components/Profile';
+import MagicLoader from './components/MagicLoader';
 
-// Loading component
+// Loading component with dashboard theme
 const Loading = () => (
   <div className="loading-container">
-    <div className="loading-spinner"></div>
+    <MagicLoader size={120} particleCount={2} speed={1.2} hueRange={[200, 280]} />
     <p>Loading...</p>
   </div>
 );

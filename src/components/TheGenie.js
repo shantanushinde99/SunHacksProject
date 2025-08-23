@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { prepareLearningContext, callTheGenie } from '../lib/theGenieService';
+import MagicLoader from './MagicLoader';
 import './TheGenie.css';
 
 const TheGenie = ({ onClose }) => {
@@ -220,7 +221,7 @@ const TheGenie = ({ onClose }) => {
         <div className="thegenie-status">
           {!contextReady ? (
             <div className="status-loading">
-              <span className="loading-spinner"></span>
+              <MagicLoader size={24} particleCount={1} speed={1.5} hueRange={[200, 280]} />
               Preparing your learning context...
             </div>
           ) : (

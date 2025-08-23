@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { generatePrerequisites } from '../lib/gemini';
 import Evaluation from './Evaluation';
 import LearningComponent from './LearningComponent';
+import MagicLoader from './MagicLoader';
 import './LearningSession.css';
 
 const LearningSession = ({ topic: initialTopic = '', onBack }) => {
@@ -243,7 +244,7 @@ const LearningSession = ({ topic: initialTopic = '', onBack }) => {
 
       {loading && (
         <div className="loading">
-          <div className="loading-spinner"></div>
+          <MagicLoader size={120} particleCount={2} speed={1.2} hueRange={[200, 280]} />
           <p>Analyzing topic and generating prerequisites...</p>
         </div>
       )}

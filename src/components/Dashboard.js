@@ -13,11 +13,9 @@ const Dashboard = ({ onStartLearning, onOpenProfile }) => {
   const { user, signOut } = useAuth();
   const [inputMethod, setInputMethod] = useState('topic'); // 'topic' or 'files'
   const [displayName, setDisplayName] = useState(''); // full_name or email
-  const [loadingName, setLoadingName] = useState(false);
   const [sessionType, setSessionType] = useState('fast'); // 'fast' or 'depth'
-  const [currentStep, setCurrentStep] = useState('input-method'); // 'input-method', 'session-type', 'ready'
+  const [currentStep, setCurrentStep] = useState('dashboard'); // 'dashboard', 'input-method', 'session-type', 'ready'
   const [recentSessions, setRecentSessions] = useState([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
   const [showTheGenie, setShowTheGenie] = useState(false);
 
   // Handle topic submission
@@ -92,30 +90,30 @@ const Dashboard = ({ onStartLearning, onOpenProfile }) => {
     }
   };
 
-  // Handle going back to input method selection
-  const handleBackToInputMethod = () => {
-    setCurrentStep('input-method');
-    setInputMethod('topic');
-    window.selectedTopic = null;
-    window.selectedFiles = null;
-  };
+  // Load dashboard data
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        // Load display name
+        const name = await getDisplayName();
+        setDisplayName(name);
 
-  // Load recent sessions
-  const loadRecentSessions = async () => {
-    try {
-      setLoadingSessions(true);
-      const result = await getRecentSessions(3);
-      if (result.success) {
-        setRecentSessions(result.sessions);
-      } else {
-        console.error('Failed to load recent sessions:', result.error);
+        // Load recent sessions
+        const result = await getRecentSessions(10);
+        if (result.success) {
+          setRecentSessions(result.sessions);
+        } else {
+          console.error('Failed to load recent sessions:', result.error);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
       }
-    } catch (error) {
-      console.error('Error loading recent sessions:', error);
-    } finally {
-      setLoadingSessions(false);
+    };
+
+    if (user) {
+      loadDashboardData();
     }
-  };
+  }, [user]);
 
   // Handle continuing a session
   const handleContinueSession = async (sessionId) => {
@@ -144,201 +142,348 @@ const Dashboard = ({ onStartLearning, onOpenProfile }) => {
     }
   };
 
-  // Load recent sessions when component mounts
-  useEffect(() => {
-    if (user) {
-      loadRecentSessions();
-    }
-  }, [user]);
 
-  useEffect(() => {
-    const fetchName = async () => {
-      if (!user) return;
-      setLoadingName(true);
-      try {
-        const name = await getDisplayName();
-        setDisplayName(name || user.email);
-      } catch (e) {
-        setDisplayName(user.email);
-      } finally {
-        setLoadingName(false);
-      }
-    };
-    fetchName();
-  }, [user]);
 
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1 className="dashboard-title">Study Genie</h1>
-        <div className="user-info">
-          <button 
-            onClick={() => setShowTheGenie(true)}
-            className="thegenie-button"
-            title="Ask TheGenie for help with your learning materials"
-          >
-            🧞‍♂️ Ask TheGenie
-          </button>
-          <button
-            className="user-email"
-            onClick={onOpenProfile}
-            title="View profile"
-            disabled={loadingName}
-          >
-            {loadingName ? 'Loading...' : (displayName || user?.email)}
-          </button>
-          <button
-            onClick={signOut}
-            className="signout-button"
-          >
-            Sign Out
+    <div className="modern-dashboard">
+      {/* Sidebar Navigation */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="logo">
+            <span className="logo-icon">🧞‍♂️</span>
+            <span className="logo-text">Study Genie</span>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-item active">
+            <span className="nav-icon">🏠</span>
+            <span className="nav-text">Dashboard</span>
+          </div>
+          <div className="nav-item" onClick={onOpenProfile}>
+            <span className="nav-icon">👤</span>
+            <span className="nav-text">Profile</span>
+          </div>
+          <div className="nav-item" onClick={() => setShowTheGenie(true)}>
+            <span className="nav-icon">🧞‍♂️</span>
+            <span className="nav-text">Ask TheGenie</span>
+          </div>
+        </nav>
+
+        <div className="sidebar-footer">
+          <button onClick={signOut} className="signout-btn">
+            <span className="nav-icon">🚪</span>
+            <span className="nav-text">Sign Out</span>
           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="dashboard-main">
-        {currentStep === 'input-method' && (
-          <>
-            <div className="welcome-section">
-              <h2>Welcome to your learning journey!</h2>
-              <p>Choose how you'd like to start learning today.</p>
+      {/* Main Content */}
+      <main className="main-content">
+        {/* Top Header */}
+        <header className="top-header">
+          <div className="header-left">
+            <h1 className="page-title">My Learning</h1>
+          </div>
+          <div className="header-right">
+            <div className="user-avatar" onClick={onOpenProfile}>
+              <span>{(displayName || user?.email || '').charAt(0).toUpperCase()}</span>
             </div>
+          </div>
+        </header>
 
-            <div className="input-method-selection">
-              <div className="method-selector">
-                <button
-                  className={`method-option ${inputMethod === 'topic' ? 'selected' : ''}`}
-                  onClick={() => setInputMethod('topic')}
-                >
-                  <span className="method-icon">📝</span>
-                  <span className="method-text">Enter Topic</span>
-                </button>
-                <button
-                  className={`method-option ${inputMethod === 'files' ? 'selected' : ''}`}
-                  onClick={() => setInputMethod('files')}
-                >
-                  <span className="method-icon">📁</span>
-                  <span className="method-text">Upload Files</span>
-                </button>
-              </div>
-
-              <div className="selected-method-content">
-                {inputMethod === 'topic' && (
-                  <TopicInput onTopicSubmit={handleTopicSubmit} />
-                )}
-                {inputMethod === 'files' && (
-                  <FileUpload onFilesSubmit={handleFilesSubmit} />
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {currentStep === 'session-type' && (
-          <>
-            <div className="step-header">
-              <button className="back-button" onClick={handleBackToInputMethod}>
-                ← Back to Input Selection
-              </button>
-              <h2>Choose Your Learning Style</h2>
-            </div>
-
-            {window.selectedFiles?.detectedTopic && (
-              <div className="detected-topic-info">
-                <h3>Detected Topic: {window.selectedFiles.detectedTopic}</h3>
-                {window.selectedFiles.topicInfo?.description && (
-                  <p>{window.selectedFiles.topicInfo.description}</p>
-                )}
-                {window.selectedFiles.topicInfo?.subtopics && window.selectedFiles.topicInfo.subtopics.length > 0 && (
-                  <div className="subtopics">
-                    <strong>Key areas:</strong> {window.selectedFiles.topicInfo.subtopics.join(', ')}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <SessionTypeSelector
-              selectedType={sessionType}
-              onTypeChange={handleSessionTypeChange}
-            />
-
-            <div className="start-session-section">
+        {/* Hero Section */}
+        <section className="hero-section">
+          <div className="hero-content">
+            <div className="hero-text">
+              <div className="subject-tag">Physics</div>
+              <h2 className="hero-title">
+                The study of the<br />
+                structure of matter.
+              </h2>
               <button
-                className="start-session-button"
-                onClick={handleStartLearning}
-                disabled={!sessionType}
+                className="continue-course-btn"
+                onClick={() => setCurrentStep('input-method')}
               >
-                Start {sessionType === 'fast' ? 'Fast' : 'Depth'} Learning Session
+                <span className="play-icon">▶</span>
+                CONTINUE TO STUDY
               </button>
             </div>
-          </>
+            <div className="hero-visual">
+              <div className="floating-elements">
+                <div className="element element-1">🧪</div>
+                <div className="element element-2">⚛️</div>
+                <div className="element element-3">🔬</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Content Grid */}
+        <div className="content-grid">
+          {/* Left Column */}
+          <div className="left-column">
+            {/* Learning Sessions Section */}
+            <section className="sessions-section">
+              <div className="section-header">
+                <h3>Course you're taking</h3>
+              </div>
+
+              <div className="sessions-list">
+                {recentSessions.length > 0 ? (
+                  recentSessions.slice(0, 4).map((session) => (
+                    <div key={session.id} className="session-item">
+                      <div className="session-icon">
+                        {session.session_type === 'fast' ? '⚡' : '🌳'}
+                      </div>
+                      <div className="session-details">
+                        <h4>{session.topic}</h4>
+                        <div className="session-progress">
+                          <span className="hours-spent">
+                            {session.studied_flashcards || 0} flashcards studied
+                          </span>
+                          <div className="progress-bar">
+                            <div
+                              className="progress-fill"
+                              style={{
+                                width: `${session.total_flashcards > 0 ?
+                                  (session.studied_flashcards / session.total_flashcards) * 100 : 0}%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className="progress-percent">
+                            {session.total_flashcards > 0 ?
+                              Math.round((session.studied_flashcards / session.total_flashcards) * 100) : 0}%
+                          </span>
+                        </div>
+                      </div>
+                      {(() => {
+                        // Calculate actual progress percentage
+                        const progressPercent = session.total_flashcards > 0 ?
+                          Math.round((session.studied_flashcards / session.total_flashcards) * 100) : 0;
+                        const isCompleted = progressPercent === 100;
+
+                        return (
+                          <div className={`session-status-badge ${isCompleted ? 'completed' : 'in-progress'}`}>
+                            {isCompleted ? 'Completed' : 'In progress'}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Continue button for sessions that are not 100% complete */}
+                      {(() => {
+                        const progressPercent = session.total_flashcards > 0 ?
+                          Math.round((session.studied_flashcards / session.total_flashcards) * 100) : 0;
+
+                        // Show continue button only if progress is less than 100%
+                        return progressPercent < 100 && (
+                          <button
+                            className="continue-session-btn"
+                            onClick={() => handleContinueSession(session.id)}
+                          >
+                            <span className="continue-icon">▶️</span>
+                            Continue
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">
+                    <p>No learning sessions yet</p>
+                    <button
+                      onClick={() => setCurrentStep('input-method')}
+                      className="start-first-session"
+                    >
+                      Start your first session
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column */}
+          <div className="right-column">
+            {/* Progress Section */}
+            <section className="progress-section">
+              <div className="section-header">
+                <h3>My Progress</h3>
+              </div>
+
+              {/* Study Time Card */}
+              <div className="progress-card">
+                <div className="card-header">
+                  <span>Track your study time</span>
+                  <span className="info-icon">ℹ️</span>
+                </div>
+                <div className="study-time">
+                  <div className="time-display">
+                    <span className="time-number">124</span>
+                    <span className="time-label">Hours</span>
+                  </div>
+                  <div className="time-chart">
+                    {/* Simple bar chart representation */}
+                    <div className="chart-bars">
+                      <div className="bar" style={{height: '20%'}}></div>
+                      <div className="bar" style={{height: '40%'}}></div>
+                      <div className="bar" style={{height: '60%'}}></div>
+                      <div className="bar" style={{height: '80%'}}></div>
+                      <div className="bar" style={{height: '100%'}}></div>
+                      <div className="bar" style={{height: '70%'}}></div>
+                      <div className="bar" style={{height: '50%'}}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sessions Completed Card */}
+              <div className="progress-card purple">
+                <div className="card-header">
+                  <span>Sessions completed</span>
+                  <span className="info-icon">ℹ️</span>
+                </div>
+                <div className="completion-number">
+                  {recentSessions.filter(s => {
+                    // Check both status and progress completion
+                    const progressPercent = s.total_flashcards > 0 ?
+                      Math.round((s.studied_flashcards / s.total_flashcards) * 100) : 0;
+                    return s.status === 'completed' || progressPercent === 100;
+                  }).length}
+                </div>
+              </div>
+
+              {/* Performance Card */}
+              <div className="progress-card">
+                <div className="card-header">
+                  <span>Performance</span>
+                  <span className="info-icon">ℹ️</span>
+                </div>
+                <div className="performance-content">
+                  <div className="performance-score">
+                    {(() => {
+                      const sessionsWithScores = recentSessions.filter(s => s.final_score !== null && s.final_score !== undefined);
+                      if (sessionsWithScores.length === 0) return '0';
+                      const average = sessionsWithScores.reduce((sum, s) => sum + s.final_score, 0) / sessionsWithScores.length;
+                      return Math.round(average);
+                    })()}%
+                  </div>
+                  <div className="performance-chart">
+                    {/* Performance trend line */}
+                    <svg viewBox="0 0 100 40" className="trend-line">
+                      <path d="M10,30 Q30,20 50,15 T90,10" stroke="#8b5cf6" strokeWidth="2" fill="none"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Complete Tests Card */}
+              <div className="progress-card purple">
+                <div className="card-header">
+                  <span>Complete tests</span>
+                  <span className="info-icon">ℹ️</span>
+                </div>
+                <div className="completion-number">
+                  {recentSessions.filter(s => {
+                    // Count sessions that have completed evaluations (have questions and final scores)
+                    return s.total_questions > 0 && (s.status === 'completed' || s.final_score !== null);
+                  }).length}
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {/* Input Method Modal */}
+        {currentStep === 'input-method' && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>How would you like to start learning?</h2>
+                <button
+                  className="close-modal"
+                  onClick={() => setCurrentStep('dashboard')}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="input-method-selection">
+                <div className="method-selector">
+                  <button
+                    className={`method-option ${inputMethod === 'topic' ? 'selected' : ''}`}
+                    onClick={() => setInputMethod('topic')}
+                  >
+                    <span className="method-icon">📝</span>
+                    <span className="method-text">Enter Topic</span>
+                  </button>
+                  <button
+                    className={`method-option ${inputMethod === 'files' ? 'selected' : ''}`}
+                    onClick={() => setInputMethod('files')}
+                  >
+                    <span className="method-icon">📁</span>
+                    <span className="method-text">Upload Files</span>
+                  </button>
+                </div>
+
+                <div className="selected-method-content">
+                  {inputMethod === 'topic' && (
+                    <TopicInput onTopicSubmit={handleTopicSubmit} />
+                  )}
+                  {inputMethod === 'files' && (
+                    <FileUpload onFilesSubmit={handleFilesSubmit} />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
-        <div className="recent-sessions">
-          <h3>Recent Learning Sessions</h3>
-          <div className="sessions-grid">
-            {loadingSessions ? (
-              <div className="session-card">
-                <h4>Loading sessions...</h4>
-                <p>Please wait while we fetch your recent sessions.</p>
+        {/* Session Type Modal */}
+        {currentStep === 'session-type' && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h2>Choose Your Learning Style</h2>
+                <button
+                  className="close-modal"
+                  onClick={() => setCurrentStep('dashboard')}
+                >
+                  ×
+                </button>
               </div>
-            ) : recentSessions.length > 0 ? (
-              recentSessions.map((session) => (
-                <div key={session.id} className="session-card">
-                  <div className="session-header">
-                    <h4>{session.topic}</h4>
-                    <span className={`session-type ${session.session_type}`}>
-                      {session.session_type === 'fast' ? '⚡ Fast' : '🎯 Depth'}
-                    </span>
-                  </div>
-                  <div className="session-stats">
-                    <div className="stat">
-                      <span className="stat-label">Flashcards:</span>
-                      <span className="stat-value">
-                        {session.studied_flashcards}/{session.total_flashcards}
-                      </span>
-                    </div>
-                    {session.total_questions > 0 && (
-                      <div className="stat">
-                        <span className="stat-label">Score:</span>
-                        <span className="stat-value">
-                          {session.final_score ? `${session.final_score}%` : 'In Progress'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="session-meta">
-                    <span className={`session-status ${session.status}`}>
-                      {session.status === 'completed' ? '✅ Completed' :
-                       session.status === 'in_progress' ? '🔄 In Progress' : '❌ Abandoned'}
-                    </span>
-                    <span className="session-date">
-                      {new Date(session.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
 
-                  {/* Continue button for in-progress sessions */}
-                  {session.status === 'in_progress' && (
-                    <div className="session-actions">
-                      <button
-                        className="continue-session-button"
-                        onClick={() => handleContinueSession(session.id)}
-                      >
-                        <span className="continue-icon">▶️</span>
-                        Continue Session
-                      </button>
+              {window.selectedFiles?.detectedTopic && (
+                <div className="detected-topic-info">
+                  <h3>Detected Topic: {window.selectedFiles.detectedTopic}</h3>
+                  {window.selectedFiles.topicInfo?.description && (
+                    <p>{window.selectedFiles.topicInfo.description}</p>
+                  )}
+                  {window.selectedFiles.topicInfo?.subtopics && window.selectedFiles.topicInfo.subtopics.length > 0 && (
+                    <div className="subtopics">
+                      <strong>Key areas:</strong> {window.selectedFiles.topicInfo.subtopics.join(', ')}
                     </div>
                   )}
                 </div>
-              ))
-            ) : (
-              <div className="session-card">
-                <h4>No sessions yet</h4>
-                <p>Start your first learning session above!</p>
+              )}
+
+              <SessionTypeSelector
+                selectedType={sessionType}
+                onTypeChange={handleSessionTypeChange}
+              />
+
+              <div className="start-session-section">
+                <button
+                  className="start-session-button"
+                  onClick={handleStartLearning}
+                  disabled={!sessionType}
+                >
+                  Start {sessionType === 'fast' ? 'Fast' : 'Depth'} Learning Session
+                </button>
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
       
       {/* TheGenie Chatbot */}

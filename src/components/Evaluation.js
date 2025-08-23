@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateMCQQuestions, generateEvaluationReport } from '../lib/gemini';
+import MagicLoader from './MagicLoader';
 import './Evaluation.css';
 
 const Evaluation = ({ selectedPrerequisites, onEvaluationComplete, onBack }) => {
@@ -188,7 +189,7 @@ const Evaluation = ({ selectedPrerequisites, onEvaluationComplete, onBack }) => 
         <h1 className="title">Study Genie</h1>
         
         <div className="loading">
-          <div className="loading-spinner"></div>
+          <MagicLoader size={120} particleCount={2} speed={1.2} hueRange={[200, 280]} />
           <p>Generating evaluation questions...</p>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { generatePrerequisites } from '../lib/gemini';
 import { createSession, updateSessionProgress } from '../lib/sessionService';
 import Evaluation from './Evaluation';
 import LearningComponent from './LearningComponent';
+import MagicLoader from './MagicLoader';
 import './DepthLearningSession.css';
 
 const DepthLearningSession = ({ topic: initialTopic = '', resumeData = null, onBack }) => {
@@ -287,7 +288,7 @@ const DepthLearningSession = ({ topic: initialTopic = '', resumeData = null, onB
 
       {loading && (
         <div className="loading">
-          <div className="loading-spinner"></div>
+          <MagicLoader size={120} particleCount={2} speed={1.2} hueRange={[200, 280]} />
           <p>Analyzing topic and generating prerequisites...</p>
         </div>
       )}

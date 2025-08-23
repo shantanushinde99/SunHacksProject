@@ -1,9 +1,9 @@
-/* Evaluation Component Styles */
+/* Evaluation Component Styles - Dashboard Theme */
 .evaluation-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   color: #ffffff;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   padding: 40px 20px;
   display: flex;
   flex-direction: column;
@@ -106,14 +106,16 @@
 
 /* Question Card */
 .question-card {
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   padding: 30px 25px;
   margin-bottom: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
 .question-card h3 {

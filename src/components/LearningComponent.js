@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateFlashcards } from '../lib/gemini';
+import MagicLoader from './MagicLoader';
 import './LearningComponent.css';
 
 const LearningComponent = ({ topicsToLearn, onComplete, onBack }) => {
@@ -130,7 +131,7 @@ const LearningComponent = ({ topicsToLearn, onComplete, onBack }) => {
 
         {loading ? (
           <div className="loading">
-            <div className="loading-spinner"></div>
+            <MagicLoader size={120} particleCount={2} speed={1.2} hueRange={[200, 280]} />
             <p>Generating flashcards...</p>
           </div>
         ) : (
@@ -185,10 +186,16 @@ const LearningComponent = ({ topicsToLearn, onComplete, onBack }) => {
               
               <div className="card-indicators">
                 {flashcards.map((_, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`indicator ${index === currentCardIndex ? 'active' : ''} ${studiedCards.has(index) ? 'studied' : ''}`}
-                  />
+                    onClick={() => {
+                      setCurrentCardIndex(index);
+                      setIsFlipped(false);
+                    }}
+                  >
+                    {studiedCards.has(index) && <span className="tick-mark">✓</span>}
+                  </div>
                 ))}
               </div>
               
