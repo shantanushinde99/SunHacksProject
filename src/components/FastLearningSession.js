@@ -12,7 +12,7 @@ import EvaluationReport from './EvaluationReport';
 import MagicLoader from './MagicLoader';
 import './FastLearningSession.css';
 
-const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBack }) => {
+const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBack, onOpenTheGenie }) => {
   const [topic] = useState(initialTopic);
   const [currentPhase, setCurrentPhase] = useState(resumeData?.currentPhase || 'flashcards'); // 'flashcards', 'evaluation', 'report', 'completed'
   const [flashcards, setFlashcards] = useState(resumeData?.flashcards || []);
@@ -324,6 +324,7 @@ const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBa
         onContinue={handleReportContinue}
         onRetry={handleReportRetry}
         sessionId={sessionId}
+        onOpenTheGenie={onOpenTheGenie}
       />
     );
   }
@@ -380,6 +381,18 @@ const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBa
               {currentQuestionIndex === questions.length - 1 ? 'Complete Evaluation' : 'Next Question'}
             </button>
           </div>
+        )}
+
+        {/* Genie Explain Button */}
+        {onOpenTheGenie && (
+          <button
+            onClick={onOpenTheGenie}
+            className="genie-explain-button"
+            title="Ask TheGenie to explain concepts"
+          >
+            <span className="genie-icon">🧞‍♂️</span>
+            Genie Explain
+          </button>
         )}
       </div>
     );
@@ -530,7 +543,7 @@ const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBa
 
             {allCardsStudied && (
               <div className="completion-actions">
-                <button 
+                <button
                   onClick={handleStartEvaluation}
                   className="start-evaluation-button"
                 >
@@ -539,6 +552,18 @@ const FastLearningSession = ({ topic: initialTopic = '', resumeData = null, onBa
               </div>
             )}
           </div>
+
+          {/* Genie Explain Button */}
+          {onOpenTheGenie && (
+            <button
+              onClick={onOpenTheGenie}
+              className="genie-explain-button"
+              title="Ask TheGenie to explain concepts"
+            >
+              <span className="genie-icon">🧞‍♂️</span>
+              Genie Explain
+            </button>
+          )}
         </>
       )}
     </div>

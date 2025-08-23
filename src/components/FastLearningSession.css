@@ -93,6 +93,9 @@
   text-align: center;
   font-size: 0.9rem;
   opacity: 0.8;
+  white-space: nowrap;
+  min-width: 200px;
+  margin: 0 auto;
 }
 
 .flashcard-section {
@@ -272,6 +275,37 @@
 
 .completion-actions {
   text-align: center;
+}
+
+/* Genie Explain Button */
+.genie-explain-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.genie-explain-button:hover {
+  background: linear-gradient(135deg, #F7931E 0%, #FF6B35 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.genie-explain-button .genie-icon {
+  font-size: 16px;
 }
 
 .start-evaluation-button {
@@ -483,7 +517,17 @@
 
   .card-navigation {
     gap: 15px;
-    margin: 30px 0;
+  }
+
+  .genie-explain-button {
+    bottom: 15px;
+    right: 15px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .genie-explain-button .genie-icon {
+    font-size: 14px;
   }
 
   .nav-button {

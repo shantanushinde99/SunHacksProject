@@ -63,7 +63,10 @@ export function useFileProcessor() {
     } finally {
       setProcessing(false);
       setCurrentFile('');
-      setProgress(0);
+      // Don't reset progress immediately - let it stay at 100% for a moment
+      setTimeout(() => {
+        setProgress(0);
+      }, 2000); // Reset after 2 seconds
     }
   }, [user]);
 
@@ -103,9 +106,17 @@ export function useFileProcessor() {
       for (let i = 0; i < validFiles.length; i++) {
         const file = validFiles[i];
         setCurrentFile(file.name);
-        setProgress(((i) / validFiles.length) * 100);
 
-        console.log(`Processing file ${i + 1}/${validFiles.length}: ${file.name}`);
+        // Set progress for starting this file
+        const baseProgress = (i / validFiles.length) * 100;
+        setProgress(baseProgress);
+        console.log(`Progress: ${baseProgress}% - Starting file ${i + 1}/${validFiles.length}: ${file.name}`);
+
+        // Update progress during processing
+        const progressStep = (1 / validFiles.length) * 100;
+        const midProgress = baseProgress + progressStep * 0.5;
+        setProgress(midProgress); // 50% through current file
+        console.log(`Progress: ${midProgress}% - Processing ${file.name}...`);
 
         const result = await processFile(file, user.id);
         allResults.push(result);
@@ -115,10 +126,15 @@ export function useFileProcessor() {
         } else {
           setErrors(prev => [...prev, `${file.name}: ${result.error}`]);
         }
+
+        // Complete progress for this file
+        const completedProgress = baseProgress + progressStep;
+        setProgress(completedProgress);
+        console.log(`Progress: ${completedProgress}% - Completed ${file.name}`);
       }
 
       setProgress(100);
-      console.log(`Completed processing ${validFiles.length} files`);
+      console.log(`Progress: 100% - Completed processing ${validFiles.length} files`);
       
       return allResults;
 
@@ -129,7 +145,10 @@ export function useFileProcessor() {
     } finally {
       setProcessing(false);
       setCurrentFile('');
-      setProgress(0);
+      // Don't reset progress immediately - let it stay at 100% for a moment
+      setTimeout(() => {
+        setProgress(0);
+      }, 2000); // Reset after 2 seconds
     }
   }, [user]);
 

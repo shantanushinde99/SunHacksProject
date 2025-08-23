@@ -6,17 +6,15 @@ import { getDisplayName } from '../lib/userProfileService';
 import TopicInput from './TopicInput';
 import FileUpload from './FileUpload';
 import SessionTypeSelector from './SessionTypeSelector';
-import TheGenie from './TheGenie';
 import './Dashboard.css';
 
-const Dashboard = ({ onStartLearning, onOpenProfile }) => {
+const Dashboard = ({ onStartLearning, onOpenProfile, onOpenTheGenie }) => {
   const { user, signOut } = useAuth();
   const [inputMethod, setInputMethod] = useState('topic'); // 'topic' or 'files'
   const [displayName, setDisplayName] = useState(''); // full_name or email
   const [sessionType, setSessionType] = useState('fast'); // 'fast' or 'depth'
   const [currentStep, setCurrentStep] = useState('dashboard'); // 'dashboard', 'input-method', 'session-type', 'ready'
   const [recentSessions, setRecentSessions] = useState([]);
-  const [showTheGenie, setShowTheGenie] = useState(false);
 
   // Handle topic submission
   const handleTopicSubmit = (topic) => {
@@ -164,7 +162,7 @@ const Dashboard = ({ onStartLearning, onOpenProfile }) => {
             <span className="nav-icon">👤</span>
             <span className="nav-text">Profile</span>
           </div>
-          <div className="nav-item" onClick={() => setShowTheGenie(true)}>
+          <div className="nav-item" onClick={onOpenTheGenie}>
             <span className="nav-icon">🧞‍♂️</span>
             <span className="nav-text">Ask TheGenie</span>
           </div>
@@ -485,11 +483,6 @@ const Dashboard = ({ onStartLearning, onOpenProfile }) => {
           </div>
         )}
       </main>
-      
-      {/* TheGenie Chatbot */}
-      {showTheGenie && (
-        <TheGenie onClose={() => setShowTheGenie(false)} />
-      )}
     </div>
   );
 };

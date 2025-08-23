@@ -515,7 +515,8 @@
   align-items: center;
   margin-bottom: 16px;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  color: rgba(255, 255, 255);
 }
 
 .info-icon {

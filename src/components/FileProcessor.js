@@ -24,6 +24,11 @@ const FileProcessor = ({ files, onComplete, onError }) => {
     }
   }, [files]);
 
+  // Debug progress changes
+  React.useEffect(() => {
+    console.log(`FileProcessor: Progress updated to ${progress}%, Processing: ${processing}, Current file: ${currentFile}`);
+  }, [progress, processing, currentFile]);
+
   // Notify parent component when processing completes
   React.useEffect(() => {
     if (!processing && (hasResults || hasErrors) && results.length > 0) {
@@ -88,8 +93,8 @@ const FileProcessor = ({ files, onComplete, onError }) => {
           
           <div className="progress-container">
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
+              <div
+                className="progress-fill"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>

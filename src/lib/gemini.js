@@ -425,29 +425,89 @@ export const answerQuestion = async (question) => {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
-You are an educational AI assistant. Answer the following question in a clear, helpful, and educational manner:
+You are TheGenie, a friendly and knowledgeable AI assistant specializing in education and learning. You help students with their studies, answer questions, provide explanations, and offer learning guidance.
 
-"${question}"
+User message: "${question}"
 
-Provide a comprehensive but concise answer that:
-1. Directly addresses the question
-2. Is easy to understand
-3. Includes relevant examples if helpful
-4. Is educational and informative
-5. Is approximately 100-200 words
+Respond in a helpful, conversational, and educational manner. Your response should:
+1. Be friendly and approachable
+2. Directly address what the user is asking
+3. Provide clear, easy-to-understand explanations
+4. Include relevant examples when helpful
+5. Offer additional learning tips or resources if appropriate
+6. Be concise but comprehensive (aim for 100-300 words depending on complexity)
 
-Return only the answer, no additional text.
+If the question is about learning strategies, study techniques, or educational topics, provide practical advice.
+If it's a specific subject question, explain the concept clearly with examples.
+If it's a general conversation, be friendly while steering toward educational topics when appropriate.
+
+Respond as TheGenie would - knowledgeable, helpful, and encouraging.
 `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
+
     return text.trim();
   } catch (error) {
     console.error('Error answering question:', error);
     // Return fallback answer
-    return "I'm sorry, I couldn't generate an answer to your question at the moment. Please try rephrasing your question or ask for help from your instructor.";
+    return "I'm sorry, I couldn't generate an answer to your question at the moment. Please try rephrasing your question or I'll do my best to help you in another way!";
+  }
+};
+
+// Generate general responses for TheGenie conversations
+export const generateResponse = async (message, conversationHistory = []) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    // Build context from conversation history
+    let contextPrompt = '';
+    if (conversationHistory.length > 0) {
+      contextPrompt = '\n\nConversation history:\n';
+      conversationHistory.slice(-5).forEach(msg => {
+        contextPrompt += `${msg.sender === 'user' ? 'User' : 'TheGenie'}: ${msg.text}\n`;
+      });
+    }
+
+    const prompt = `
+You are TheGenie, a friendly and knowledgeable AI assistant specializing in education and learning. You are part of Study Genie, a learning platform that helps students master topics through flashcards, evaluations, and personalized learning paths.
+
+Your personality:
+- Friendly, encouraging, and supportive
+- Knowledgeable about education and learning techniques
+- Patient and understanding with students
+- Enthusiastic about helping people learn
+- Professional but approachable
+
+Current user message: "${message}"${contextPrompt}
+
+Respond as TheGenie in a helpful and conversational way. Your response should:
+1. Be warm and encouraging
+2. Directly address the user's message
+3. Provide valuable educational insights when relevant
+4. Offer practical learning advice
+5. Be concise but thorough (100-300 words)
+6. End with an invitation for further questions when appropriate
+
+If the user asks about:
+- Study techniques: Provide evidence-based learning strategies
+- Subject-specific questions: Explain concepts clearly with examples
+- Learning difficulties: Offer supportive advice and alternative approaches
+- Platform features: Explain how Study Genie can help them learn
+- General conversation: Be friendly while gently steering toward educational topics
+
+Always maintain TheGenie's helpful and encouraging personality.
+`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    return text.trim();
+  } catch (error) {
+    console.error('Error generating response:', error);
+    return "I'm having a bit of trouble right now, but I'm here to help! Could you try asking your question again? I'd love to assist you with your learning journey! 🧞‍♂️";
   }
 };
 

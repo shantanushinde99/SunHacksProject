@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import DepthLearningSession from './components/DepthLearningSession';
 import FastLearningSession from './components/FastLearningSession';
 import Profile from './components/Profile';
+import TheGeniePage from './components/TheGeniePage';
 import MagicLoader from './components/MagicLoader';
 
 // Loading component with dashboard theme
@@ -47,6 +48,10 @@ const AppContent = () => {
     setProfileViewKey(prev => prev + 1);
   };
 
+  const handleOpenTheGenie = () => {
+    setCurrentView('thegenie');
+  };
+
   if (currentView === 'learning' && learningData) {
     if (learningData.type === 'fast') {
       return (
@@ -54,6 +59,7 @@ const AppContent = () => {
           topic={learningData.topic || 'Uploaded Content'}
           resumeData={learningData.resumeData}
           onBack={handleBackToDashboard}
+          onOpenTheGenie={handleOpenTheGenie}
         />
       );
     } else if (learningData.type === 'depth') {
@@ -71,7 +77,11 @@ const AppContent = () => {
     return <Profile key={profileViewKey} onBack={handleBackToDashboard} />;
   }
 
-  return <Dashboard onStartLearning={handleStartLearning} onOpenProfile={handleOpenProfile} />;
+  if (currentView === 'thegenie') {
+    return <TheGeniePage onBack={handleBackToDashboard} />;
+  }
+
+  return <Dashboard onStartLearning={handleStartLearning} onOpenProfile={handleOpenProfile} onOpenTheGenie={handleOpenTheGenie} />;
 };
 
 function App() {

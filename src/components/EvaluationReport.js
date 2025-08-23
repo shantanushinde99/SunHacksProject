@@ -6,13 +6,14 @@ import './EvaluationReport.css';
  * Evaluation Report Component
  * Shows detailed results after MCQ assessment with explanations for wrong answers
  */
-const EvaluationReport = ({ 
-  evaluationResults, 
-  questions, 
-  userAnswers, 
-  onContinue, 
+const EvaluationReport = ({
+  evaluationResults,
+  questions,
+  userAnswers,
+  onContinue,
   onRetry,
-  sessionId 
+  sessionId,
+  onOpenTheGenie
 }) => {
   const [struggledTopics, setStruggledTopics] = useState([]);
   const [overallStats, setOverallStats] = useState(null);
@@ -238,6 +239,11 @@ const EvaluationReport = ({
           <button onClick={onContinue} className="action-button continue">
             {passed ? '✅ Continue Learning' : '📚 Study More'}
           </button>
+          {onOpenTheGenie && (
+            <button onClick={onOpenTheGenie} className="action-button genie">
+              🧞‍♂️ Genie Explain
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -438,6 +438,18 @@
   box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
 }
 
+.action-button.genie {
+  background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
+.action-button.genie:hover {
+  background: linear-gradient(135deg, #F7931E 0%, #FF6B35 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .evaluation-report {
@@ -460,5 +472,8 @@
   .action-button {
     width: 100%;
     max-width: 300px;
+    min-width: auto;
+    padding: 12px 20px;
+    font-size: 14px;
   }
 }

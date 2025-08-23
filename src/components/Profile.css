@@ -195,6 +195,8 @@
 /* Form Styles */
 .profile-form-group {
   margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
 }
 
 .profile-form-group label {
@@ -203,6 +205,7 @@
   font-size: 14px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.8);
+  text-align: left;
 }
 
 .profile-form-group input {
@@ -215,12 +218,27 @@
   font-size: 16px;
   transition: all 0.3s ease;
   outline: none;
+  box-sizing: border-box;
+  min-height: 48px;
 }
 
 .profile-form-group input:focus {
   border-color: #667eea;
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.profile-form-group input:read-only {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: not-allowed;
+}
+
+.profile-form-group input:read-only:focus {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
 }
 
 .profile-form-group input::placeholder {
